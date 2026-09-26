@@ -1,0 +1,211 @@
+:root {
+    background-color: #0a0e17;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 2em;
+    padding-top: 3em;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+}
+
+h1 {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: #4ecca3;
+    margin-bottom: 1em;
+    letter-spacing: 0.05em;
+}
+
+/* ===== Main layout ===== */
+#game {
+    display: flex;
+    gap: 1.5em;
+    align-items: flex-start;
+}
+
+#leftPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+/* ===== Canvas ===== */
+#gridCanvas {
+    background-color: #161f30;
+    border: 2px solid #2a3447;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+}
+
+/* ===== HUD (stats) ===== */
+#hud {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5em;
+    background-color: #111826;
+    padding: 1em;
+    border-radius: 6px;
+    border: 1px solid #2a3447;
+}
+
+.stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3em 0.5em;
+    background-color: #0d1320;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.stat .label {
+    color: #8899aa;
+    font-weight: 500;
+}
+
+.stat .value {
+    color: #4ecca3;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+/* ===== Side panel (modules + logs) ===== */
+#rightPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    width: 220px;
+}
+
+#moduleList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}
+
+#moduleList button {
+    padding: 0.6em 0.8em;
+    background-color: #1a2438;
+    color: #e0e0e0;
+    border: 1px solid #2a3447;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    text-align: left;
+    transition: background-color 0.15s;
+}
+
+#moduleList button:hover {
+    background-color: #243049;
+}
+
+#moduleList button.active {
+    background-color: #4ecca3;
+    color: #0a0e17;
+    border-color: #4ecca3;
+    font-weight: 600;
+}
+
+/* ===== Action buttons ===== */
+#actions {
+    display: flex;
+    gap: 0.5em;
+}
+
+#actions button {
+    flex: 1;
+    padding: 0.7em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85em;
+    transition: background-color 0.15s;
+}
+
+#endTurnBtn {
+    background-color: #4ecca3;
+    color: #0a0e17;
+}
+
+#endTurnBtn:hover {
+    background-color: #3db892;
+}
+
+#restartBtn {
+    background-color: #2a3447;
+    color: #e0e0e0;
+}
+
+#restartBtn:hover {
+    background-color: #3a4457;
+}
+
+/* ===== Log panel ===== */
+#log {
+    background-color: #111826;
+    border: 1px solid #2a3447;
+    border-radius: 6px;
+    padding: 0.6em;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.75em;
+    line-height: 1.5;
+}
+
+#log div {
+    padding: 0.15em 0;
+    color: #8899aa;
+    border-bottom: 1px solid #1a2438;
+}
+
+#log div:first-child {
+    color: #4ecca3;
+    font-weight: 600;
+}
+
+#log::-webkit-scrollbar {
+    width: 6px;
+}
+
+#log::-webkit-scrollbar-thumb {
+    background-color: #2a3447;
+    border-radius: 3px;
+}
+
+/* ===== Game over overlay ===== */
+#gameOver {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(10, 14, 23, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1em;
+    z-index: 10;
+}
+
+#gameOver.hidden {
+    display: none;
+}
+
+#gameOver h2 {
+    color: #ff5c5c;
+    font-size: 2.5em;
+    margin: 0;
+    letter-spacing: 0.05em;
+}
+
+#gameOverReason {
+    color: #e0e0e0;
+    font-size: 1.1em;
+    margin-bottom: 1em;
+}
