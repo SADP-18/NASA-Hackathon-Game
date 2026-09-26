@@ -1,1 +1,11 @@
-this is a test file
+Initial planned file structure: 
+outpost-architect-rxjs/
+├── index.html            # Main canvas and UI container
+├── src/
+│   ├── types.ts          # TypeScript interfaces & types
+│   ├── config.ts         # Constants & building definitions
+│   ├── GameState.ts      # RxJS BehaviorSubjects & state streams
+│   ├── GridMap.ts        # Canvas grid rendering & click streams
+│   └── index.ts          # Main entry point & stream subscriptions
+├── package.json
+└── tsconfig.json
