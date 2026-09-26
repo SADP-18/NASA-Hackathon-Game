@@ -9,3 +9,11 @@ outpost-architect-rxjs/
 │   └── index.ts          # Main entry point & stream subscriptions
 ├── package.json
 └── tsconfig.json
+
+Run the following before running locally:
+npm init -y
+npm install rxjs
+npm install -D typescript vite
+
+To run:
+npx vite
