@@ -9,66 +9,46 @@ import {
     scan,
     startWith,
     switchMap,
-    take,
 } from "rxjs";
+import {
+    GRID_SIZE,
+    CELL_SIZE,
+    MAX_POWER,
+    START_POWER,
+    START_OXYGEN,
+    START_CREDITS,
+    CREDITS_PER_DAY,
+    TICKS_PER_DAY,
+    WIN_DAYS,
+    BLACKOUT_GRACE,
+    MODULES,
+    START_MANPOWER,
+} from "./config";
+import { Cell, ModuleType, State } from "./types";
 
-/* ========== CONSTANTS ========== */
-const GRID_SIZE = 10;
-const CELL_SIZE = 50;
-
-const MODULES = {
-    SOLAR:  { name: "Solar Array",  cost: 10, power: +15, o2: 0,  food: 0,  rad: 0  },
-    HAB:    { name: "Habitation",   cost: 15, power: -5,  o2: -4, food: -3, rad: 0  },
-    FARM:   { name: "Hydroponics",  cost: 20, power: -8,  o2: +6, food: +8, rad: 0  },
-    SHIELD: { name: "Rad Shield",   cost: 25, power: -10, o2: 0,  food: 0,  rad: -5 },
-} as const;
-
-type ModuleType = keyof typeof MODULES;
-
-/* ========== TYPES ========== */
-type Cell = Readonly<{
-    module: ModuleType | null;
-}>;
-
-type State = Readonly<{
-    turn: number;
-    power: number;
-    o2: number;
-    food: number;
-    rad: number;
-    selected: ModuleType | null;
-    grid: ReadonlyArray<ReadonlyArray<Cell>>;
-    logs: ReadonlyArray<string>;
-    gameOver: boolean;
-}>;
-
-/* ========== INITIAL STATE ========== */
-const emptyCell: Cell = { module: null };
-
+/* ===== INITIAL STATE ===== */
 const createGrid = (): Cell[][] =>
     Array.from({ length: GRID_SIZE }, () =>
-        Array.from({ length: GRID_SIZE }, () => emptyCell),
+        Array.from({ length: GRID_SIZE }, () => ({ module: null })),
     );
 
-const createInitialGrid = (): Cell[][] => {
-    const grid = createGrid();
-    grid[4][4] = { module: "HAB" }; // Command Hub
-    return grid;
-};
-
 const initialState: State = {
-    turn: 1,
-    power: 50,
-    o2: 30,
-    food: 20,
-    rad: 0,
+    credits: START_CREDITS,
+    power: START_POWER,
+    manpower: START_MANPOWER,
+    oxygen: START_OXYGEN,
+    day: 1,
+    timeSec: 0,
     selected: null,
-    grid: createInitialGrid(),
-    logs: ["Outpost initialized."],
+    grid: createGrid(),
+    blackoutTimer: 0,
+    logs: ["Outpost online. Awaiting construction."],
     gameOver: false,
+    gameOverReason: "",
+    gameWon: false,
 };
 
-/* ========== PURE REDUCERS ========== */
+/* ===== PURE REDUCERS ===== */
 type Reducer = (s: State) => State;
 
 const selectModule = (type: ModuleType): Reducer => s => ({
@@ -77,131 +57,233 @@ const selectModule = (type: ModuleType): Reducer => s => ({
 });
 
 const placeModule = (x: number, y: number): Reducer => s => {
-    if (!s.selected || s.gameOver) return s;
+    if (s.gameOver || s.gameWon || !s.selected) return s;
+    if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return s;
+    if (s.grid[x][y].module !== null) return s;
 
     const cfg = MODULES[s.selected];
-    if (s.grid[x][y].module !== null) return s;
-    if (s.power < cfg.cost) return s;
+    // Manpower gate - cannot build if there is now crew
+    if (s.manpower < cfg.manpowerDrain) {
+        return {...s, logs: [`Not enough manpower for ${cfg.name}.`, ...s.logs]};
+    }
+
+    if (s.credits < cfg.cost) {
+        return { ...s, logs: [`Not enough credits for ${cfg.name}.`, ...s.logs] };
+    }
 
     const newGrid = s.grid.map((col, cx) =>
-        col.map((cell, cy) => (cx === x && cy === y ? { module: s.selected } : cell)),
+        col.map((cell, cy) =>
+            cx === x && cy === y ? { module: s.selected } : cell,
+        ),
     );
 
     return {
         ...s,
-        power: s.power - cfg.cost,
+        credits: s.credits - cfg.cost,
         grid: newGrid,
         logs: [`Built ${cfg.name} at (${x},${y}).`, ...s.logs],
     };
 };
 
-const computeDeltas = (s: State) => {
-    let dPower = 0, dO2 = 0, dFood = 0, dRad = 2;
+/* ===== SIMULATION TICK (1 second) ===== */
+const tick: Reducer = s => {
+    if (s.gameOver || s.gameWon) return s;
+
+    // Sum module output
+    let powerGen = 0, powerDrain = 0;
+    let manpowerGen = 0, manpowerDrain = 0;
+    let o2Gen = 0, o2Drain = 0;
+    let hydroCount = 0;
 
     s.grid.forEach(col =>
         col.forEach(cell => {
             if (!cell.module) return;
             const cfg = MODULES[cell.module];
-            dPower += cfg.power;
-            dO2 += cfg.o2;
-            dFood += cfg.food;
-            dRad += cfg.rad;
+            powerGen += cfg.powerGen;
+            powerDrain += cfg.powerDrain;
+            manpowerGen += cfg.manpowerGen;
+            manpowerDrain += cfg.manpowerDrain;
+            o2Gen += cfg.o2Gen;
+            o2Drain += cfg.o2Drain;
+            if (cell.module === "HYDRO") hydroCount++;
         }),
     );
 
-    return { dPower, dO2, dFood, dRad: Math.max(-10, dRad) };
-};
+    const netPower = powerGen - powerDrain;
+    let newPower = Math.max(0, Math.min(MAX_POWER, s.power + netPower));
 
-const endTurn: Reducer = s => {
-    if (s.gameOver) return s;
+    // Blackout tracking
+    const inBlackout = netPower <= 0 && netPower < 0;
+    const newBlackoutTimer = inBlackout ? s.blackoutTimer + 1 : 0;
 
-    const { dPower, dO2, dFood, dRad } = computeDeltas(s);
+    // Manpower
+    const newManpower = Math.max(0, s.manpower = manpowerGen - manpowerDrain);
 
-    let power = Math.max(0, s.power + dPower);
-    let o2 = Math.max(0, s.o2 + dO2);
-    let food = Math.max(0, s.food + dFood);
-    let rad = Math.max(0, s.rad + dRad);
+    // Oxygen change: hydroponics must have power to run
+    const effectiveO2Gen = newPower > 0 ? o2Gen : 0;
+    const netO2 = effectiveO2Gen - o2Drain;
+    let newOxygen = Math.max(0, Math.min(100, s.oxygen + netO2));
 
-    const newLogs = [`--- Turn ${s.turn + 1} ---`, ...s.logs];
+    // Time / Day advance
+    const newTime = s.timeSec + 1;
+    const advancedDay = newTime >= TICKS_PER_DAY;
+    const newDay = advancedDay ? s.day + 1 : s.day;
+    const newCredits = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
+    const newLogs = advancedDay
+        ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
+        : s.logs;
+    
+    const blackoutStarted = newBlackoutTimer === 1 && s.blackoutTimer === 0;
+    const finalLogs = blackoutStarted ? [`WARNING: Power depleted. ${BLACKOUT_GRACE}s until system failure.`, ...newLogs] : newLogs;
 
-    // Random solar flare event
-    if (Math.random() < 0.15) {
-        const dmg = Math.floor(Math.random() * 10) + 5;
-        o2 = Math.max(0, o2 - dmg);
-        newLogs.unshift(`ALERT: Solar flare! -${dmg} O2.`);
+    // Losing conditions
+    let gameOver = false;
+    let gameWon = false;
+    let reason = "";
+
+    if (newOxygen <= 0) {
+        gameOver = true;
+        reason = "Oxygen depleted. Crew lost.";
+    } else if (newBlackoutTimer >= BLACKOUT_GRACE) {
+        gameOver = true;
+        reason = `Base without power for ${BLACKOUT_GRACE}s. Systems failed.`;
+    } else if (newManpower <= 0 && manpowerDrain > manpowerGen) {
+        gameOver = true;
+        reason = "Manpower exchausted. Crew cannot operate."
     }
 
-    const gameOver = o2 <= 0 || food <= 0 || rad >= 100;
-    const reason = o2 <= 0 ? "Oxygen depleted." :
-                   food <= 0 ? "Food exhausted." :
-                   rad >= 100 ? "Critical radiation." : "";
+    // Winning condition
+    if (!gameOver && newDay > WIN_DAYS) {
+        gameWon = true;
+        reason = `Survived ${WIN_DAYS} days! Outpost is sustainable.`;
+    }
 
     return {
         ...s,
-        turn: s.turn + 1,
-        power, o2, food, rad,
-        logs: gameOver ? [reason, ...newLogs] : newLogs,
+        power: newPower,
+        manpower: newManpower,
+        oxygen: newOxygen,
+        credits: newCredits,
+        day: newDay,
+        timeSec: advancedDay ? 0 : newTime,
+        blackoutTimer: newBlackoutTimer,
+        logs: gameOver || gameWon ? [reason, ...newLogs] : newLogs,
         gameOver,
+        gameWon,
+        gameOverReason: reason,
     };
 };
 
 const restart = (): State => ({
     ...initialState,
-    grid: createInitialGrid(),
+    grid: createGrid(),
     logs: ["Outpost re-initialized."],
 });
 
-/* ========== RENDERING (side effects) ========== */
+/* ===== RENDER (side effects) ===== */
 const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
     const ctx = canvas.getContext("2d")!;
+    // Cache loaded icons so we don't recreate them every frame
+    const iconCache: Partial<Record<ModuleType, HTMLImageElement>> = {};
+
+    (Object.keys(MODULES) as ModuleType[]).forEach(type => {
+        const img = new Image();
+        img.src = MODULES[type].icon;
+        iconCache[type] = img;
+    });
 
     return s => {
-        // Draw grid
+        // --- Grid ---
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
                 const cell = s.grid[x][y];
                 const px = x * CELL_SIZE;
                 const py = y * CELL_SIZE;
 
-                ctx.fillStyle = cell.module ? "#4ecca3" : "#161f30";
+                // Base tile (transparent so CSS background shows through)
+                ctx.fillStyle = "rgba(0,0,0,0)";
                 ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
-                ctx.strokeStyle = "#2a3447";
-                ctx.strokeRect(px, py, CELL_SIZE, CELL_SIZE);
 
+                // Grid outline
+                ctx.strokeStyle = "rgba(255,255,255,0.15)";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(px + 0.5, py + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
+
+                // Placed module
                 if (cell.module) {
-                    ctx.fillStyle = "#000";
-                    ctx.font = "bold 10px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.fillText(cell.module, px + CELL_SIZE / 2, py + CELL_SIZE / 2 + 3);
+                    const img = iconCache[cell.module];
+                    if (img && img.complete && img.naturalWidth > 0) {
+                        ctx.drawImage(img, px + 4, py + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+                    } else {
+                        // Fallback text if icon hasn't loaded yet
+                        ctx.fillStyle = "#4ecca3";
+                        ctx.font = "bold 10px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText(cell.module, px + CELL_SIZE / 2, py + CELL_SIZE / 2 + 4);
+                    }
                 }
             }
         }
 
-        // Update HUD
-        setText("stat-power", s.power);
-        setText("stat-o2", s.o2);
-        setText("stat-food", s.food);
-        setText("stat-rad", s.rad);
-        setText("stat-turn", s.turn);
+        // --- HUD ---
+        let netPower = 0;
+        s.grid.forEach(col => 
+            col.forEach(cell =>{
+                if (!cell.module) return;
+                netPower += MODULES[cell.module].powerGen - MODULES[cell.module].powerDrain;
+            }),
+        );
 
-        // Update logs
+        const powerEl = document.getElementById("hud-power");
+        if (powerEl) {
+            const sign = netPower >= 0 ? "+" : "";
+            powerEl.innerText = `${Math.round(s.power)}/${MAX_POWER} (${sign}${netPower}/s)`;
+            powerEl.style.color = netPower < 0 ? "#ff5c5c" : netPower > 0 ? "#4ecca3" : "";
+        }
+
+        setText("hud-manpower", String(s.manpower));
+        setText("hud-oxygen", `${Math.round(s.oxygen)}%`);
+        setText("hud-credits", `$${s.credits}`);
+        setText("hud-day", `Day ${s.day}`);
+
+        // --- Selected module highlight ---
+        document.querySelectorAll<HTMLElement>(".module-btn").forEach(btn => {
+            btn.classList.toggle("active", btn.dataset.module === s.selected);
+        });
+
+        // --- Logs ---
         const logEl = document.getElementById("log");
-        if (logEl) logEl.innerHTML = s.logs.slice(0, 12).map(l => `<div>${l}</div>`).join("");
+        if (logEl) {
+            logEl.innerHTML = s.logs.slice(0, 10).map(l => `<div>${l}</div>`).join("");
+        }
 
-        // Game over overlay
-        const overlay = document.getElementById("gameOver");
-        if (overlay) overlay.classList.toggle("hidden", !s.gameOver);
+        // --- Game over / win overlay ---
+        const overlay = document.getElementById("overlay");
+        const overlayTitle = document.getElementById("overlayTitle");
+        const overlayMsg = document.getElementById("overlayMsg");
+        if (overlay && overlayTitle && overlayMsg) {
+            if (s.gameOver || s.gameWon) {
+                overlay.classList.remove("hidden");
+                overlayTitle.innerText = s.gameWon ? "OUTPOST SUSTAINABLE" : "OUTPOST LOST";
+                overlayTitle.style.color = s.gameWon ? "#4ecca3" : "#ff5c5c";
+                overlayMsg.innerText = s.gameOverReason;
+            } else {
+                overlay.classList.add("hidden");
+            }
+        }
     };
 };
 
-const setText = (id: string, val: number) => {
+const setText = (id: string, val: string) => {
     const el = document.getElementById(id);
-    if (el) el.innerText = String(val);
+    if (el) el.innerText = val;
 };
 
-/* ========== STREAMS ========== */
+/* ===== STREAMS ===== */
 const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
-    // Grid clicks → coordinate → place module
+    // Grid click → place module
     const click$: Observable<Reducer> = fromEvent<MouseEvent>(canvas, "click").pipe(
         map(e => {
             const rect = canvas.getBoundingClientRect();
@@ -211,16 +293,10 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
         }),
     );
 
-    // Module selection buttons
+    // Module select buttons (matched by data-module attribute)
     const select$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
         filter(e => (e.target as HTMLElement).dataset.module !== undefined),
         map(e => selectModule((e.target as HTMLElement).dataset.module as ModuleType)),
-    );
-
-    // End turn button
-    const endTurn$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
-        filter(e => (e.target as HTMLElement).id === "endTurnBtn"),
-        map(() => endTurn),
     );
 
     // Restart button
@@ -229,7 +305,10 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
         map(() => restart()),
     );
 
-    const events$ = merge(click$, select$, endTurn$);
+    // Simulation tick — 1 second
+    const tick$: Observable<Reducer> = interval(1000).pipe(map(() => tick));
+
+    const events$ = merge(click$, select$, tick$);
 
     return restart$.pipe(
         startWith(initialState),
@@ -239,17 +318,36 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
     );
 };
 
-/* ========== BOOTSTRAP ========== */
+/* ===== BOOTSTRAP ===== */
 if (typeof window !== "undefined") {
     const canvas = document.getElementById("gridCanvas") as HTMLCanvasElement;
+    canvas.width = GRID_SIZE * CELL_SIZE;
+    canvas.height = GRID_SIZE * CELL_SIZE;
 
-    // Build module buttons
-    const moduleList = document.getElementById("moduleList")!;
-    Object.entries(MODULES).forEach(([key, cfg]) => {
+    // Build module buttons from MODULES config
+    const menu = document.getElementById("buildMenu")!;
+    (Object.keys(MODULES) as ModuleType[]).forEach(key => {
+        const cfg = MODULES[key];
         const btn = document.createElement("button");
-        btn.innerText = `${cfg.name} (${cfg.cost})`;
+        btn.className = "module-btn";
         btn.dataset.module = key;
-        moduleList.appendChild(btn);
+        btn.title = cfg.description;
+
+        // Icon placeholder — the designer replaces /icons/*.svg
+        const img = document.createElement("img");
+        img.src = cfg.icon;
+        img.alt = cfg.name;
+        img.onerror = () => { img.style.visibility = "hidden"; };
+        btn.appendChild(img);
+
+        const label = document.createElement("span");
+        label.className = "module-label";
+        label.innerHTML = `
+            <span class="name">${cfg.name}</span>
+            <span class="cost">$${cfg.cost}</span>`;
+        btn.appendChild(label);
+
+        menu.appendChild(btn);
     });
 
     state$(canvas).subscribe(render(canvas));

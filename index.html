@@ -1,54 +1,57 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Outpost</title>
-    </head>
-    <body>
-        <h1>OUTPOST COMMAND</h1>
-
-        <div id="game">
-            <div id="leftPanel">
-                <canvas id="gridCanvas" width="500" height="500"></canvas>
-                <div id="hud">
-                    <div class="stat">
-                        <span class="label">Power</span>
-                        <span class="value" id="stat-power">50</span>
-                    </div>
-                    <div class="stat">
-                        <span class="label">O₂</span>
-                        <span class="value" id="stat-o2">30</span>
-                    </div>
-                    <div class="stat">
-                        <span class="label">Food</span>
-                        <span class="value" id="stat-food">20</span>
-                    </div>
-                    <div class="stat">
-                        <span class="label">Rad</span>
-                        <span class="value" id="stat-rad">0</span>
-                    </div>
-                    <div class="stat">
-                        <span class="label">Turn</span>
-                        <span class="value" id="stat-turn">1</span>
-                    </div>
-                </div>
+<head>
+    <meta charset="UTF-8" />
+    <title>Outpost Architect</title>
+</head>
+<body>
+    <div id="topBar">
+        <h1>Outpost Architect</h1>
+        <div id="hud">
+            <div class="hud-item">
+                <span class="label">Power</span>
+                <span class="value" id="hud-power">50 / 100</span>
             </div>
-
-            <div id="rightPanel">
-                <div id="moduleList"></div>
-                <div id="actions">
-                    <button id="endTurnBtn">End Turn</button>
-                    <button id="restartBtn">Restart</button>
-                </div>
-                <div id="log"></div>
+            <div class="hud-item">
+                <span class="label">Credits</span>
+                <span class="value" id="hud-credits">$50</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Manpower</span>
+                <span class="value" id=""hud-manpower>5</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Oxygen</span>
+                <span class="value" id="hud-oxygen">100%</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Day</span>
+                <span class="value" id="hud-day">Day 1</span>
             </div>
         </div>
+        <div></div>
+    </div>
 
-        <div id="gameOver" class="hidden">
-            <h2>GAME OVER</h2>
-            <div id="gameOverReason"></div>
-        </div>
+    <div id="game">
+        <aside id="sidePanel">
+            <h2>Build Menu</h2>
+            <div id="buildMenu"></div>
+        </aside>
 
-        <script type="module" src="/src/main.ts"></script>
-    </body>
+        <canvas id="gridCanvas"></canvas>
+
+        <aside id="rightPanel">
+            <h2>Outpost Log</h2>
+            <div id="log"></div>
+            <button id="restartBtn">Restart</button>
+        </aside>
+    </div>
+
+    <div id="overlay" class="hidden">
+        <h2 id="overlayTitle">OUTPOST LOST</h2>
+        <p id="overlayMsg"></p>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
 </html>
