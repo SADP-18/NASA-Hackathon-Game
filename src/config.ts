@@ -27,7 +27,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Gen: 0,
         o2Drain: 0,
         description: "+12 kW. Requires 1 manpower to operate.",
-        icon: "/icons/solar.svg",
+        icon: "/icons/solar.png",
     },
     HAB: {
         type: "HAB",
@@ -40,7 +40,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Gen: 0,
         o2Drain: 5,
         description: "-3 kW, -5% O2. Produces 2 manpower.",
-        icon: "/icons/hab.svg",
+        icon: "/icons/hab.png",
     },
     HYDRO: {
         type: "HYDRO",
@@ -53,7 +53,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Gen: 15,
         o2Drain: 0,
         description: "-8 kW, +15% O2. Requires 1 manpower.",
-        icon: "/icons/hydro.svg",
+        icon: "/icons/hydro.png",
     },
     /*
     SHIELD: {
@@ -65,7 +65,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Gen: 0,
         o2Drain: 0,
         description: "-5 kW. Protects adjacent habitats.",
-        icon: "/icons/shield.svg",
+        icon: "/icons/shield.png",
     },
     */
 };
