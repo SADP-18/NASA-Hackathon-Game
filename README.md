@@ -59,3 +59,18 @@ LOOSE:
 
 - Oxygen Drops to 0%
 - Base run out of power for more than 10 seconds
+
+### For Developers
+Run the following before running locally
+```
+npm init -y
+npm install rxjs
+npm install -D typescript vite
+```
+
+Then to run:
+```
+npx vite
+or
+npm run dev
+```
