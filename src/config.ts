@@ -10,7 +10,7 @@ export const START_OXYGEN = 100;
 export const START_CREDITS = 50;
 
 export const CREDITS_PER_DAY = 5;
-export const TICKS_PER_DAY = 15;      // 15s per day (matches "flip every 15s")
+export const TICKS_PER_DAY   = 24;      // 24 seconds per day
 export const WIN_DAYS = 30;
 export const BLACKOUT_GRACE = 10;     // seconds of no power before losing
 export const BLACKOUT_O2_DRAIN = 10;  // % per sec when blackout + hydro present

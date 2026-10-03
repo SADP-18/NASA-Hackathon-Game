@@ -48,6 +48,15 @@ const initialState: State = {
     gameWon: false,
 };
 
+/* ========== HELPERS ========== */
+/**
+ * Converts seconds that passes in the current day into an in-game clock (HH:00).
+ */
+const formatGameTime = (timeSec: number): string => {
+    const hours = Math.floor((timeSec / TICKS_PER_DAY) * 24);
+    return `${String(hours).padStart(2, "0")}:00`;
+}
+
 /* ===== PURE REDUCERS ===== */
 type Reducer = (s: State) => State;
 
@@ -125,10 +134,10 @@ const tick: Reducer = s => {
     let newOxygen = Math.max(0, Math.min(100, s.oxygen + netO2));
 
     // Time / Day advance
-    const newTime = s.timeSec + 1;
+    const newTime     = s.timeSec + 1;
     const advancedDay = newTime >= TICKS_PER_DAY;
-    const newDay = advancedDay ? s.day + 1 : s.day;
-    const newCredits = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
+    const newDay      = advancedDay ? s.day + 1 : s.day;
+    const newCredits  = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
     const newLogs = advancedDay
         ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
         : s.logs;
@@ -243,10 +252,11 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
             powerEl.style.color = netPower < 0 ? "#ff5c5c" : netPower > 0 ? "#4ecca3" : "";
         }
 
-        setText("hud-manpower", String(s.manpower));
-        setText("hud-oxygen", `${Math.round(s.oxygen)}%`);
-        setText("hud-credits", `$${s.credits}`);
-        setText("hud-day", `Day ${s.day}`);
+        setText("hud-manpower",  String(s.manpower));
+        setText("hud-oxygen",    `${Math.round(s.oxygen)}%`);
+        setText("hud-credits",   `$${s.credits}`);
+        setText("hud-day",       `Day ${s.day}`);
+        setText("hud-time",      formatGameTime(s.timeSec));
 
         // --- Selected module highlight ---
         document.querySelectorAll<HTMLElement>(".module-btn").forEach(btn => {
@@ -295,8 +305,9 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
 
     // Module select buttons (matched by data-module attribute)
     const select$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
-        filter(e => (e.target as HTMLElement).dataset.module !== undefined),
-        map(e => selectModule((e.target as HTMLElement).dataset.module as ModuleType)),
+        map(e => (e.target as HTMLElement).closest<HTMLElement>(".module-btn")),
+        filter((btn): btn is HTMLElement => btn !== null),
+        map(btn => selectModule(btn.dataset.module as ModuleType))
     );
 
     // Restart button
@@ -333,20 +344,30 @@ if (typeof window !== "undefined") {
         btn.dataset.module = key;
         btn.title = cfg.description;
 
-        // Icon placeholder — the designer replaces /icons/*.svg
-        const img = document.createElement("img");
-        img.src = cfg.icon;
-        img.alt = cfg.name;
-        img.onerror = () => { img.style.visibility = "hidden"; };
-        btn.appendChild(img);
+        const fmt = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
 
-        const label = document.createElement("span");
-        label.className = "module-label";
-        label.innerHTML = `
-            <span class="name">${cfg.name}</span>
-            <span class="cost">$${cfg.cost}</span>`;
-        btn.appendChild(label);
+        // Left: placeholder "icon" (swap for <img> later - replace /icons/*.svg)
+        const icon       = document.createElement("div");
+        icon.className   = "module-icon";
+        icon.textContent = key.slice(0, 3);
 
+        // const icon     = document.createElement("img");
+        // icon.className = "module-icon";
+        // icon.src       = cfg.icon;
+        // icon.alt       = cfg.name;
+
+        // Right: title, cost, manpower number needed
+        const info = document.createElement("div");
+        info.className = "mdoule-info";
+        info.innerHTML = `
+            <div class="name"><h2>${cfg.name}</h2></div>
+            <div class="cost">Cost: $${cfg.cost}</div>
+            <div class="manpower">Manpower Needed: ${cfg.manpowerDrain}</div>
+            <div class="power">Power: ${
+                fmt(cfg.powerGen - cfg.powerDrain)} kW/s</div>
+            <div class="oxygen">O₂: ${
+                fmt(cfg.o2Gen - cfg.o2Drain)}%/s</div>`;
+        btn.append(icon, info);
         menu.appendChild(btn);
     });
 
