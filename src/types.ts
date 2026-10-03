@@ -1,46 +1,35 @@
-export type ModuleType = 'SOLAR' | 'HAB' | 'FARM' | 'SHIELD';
+export type ModuleType = "SOLAR" | "HAB" | "HYDRO" // | "SHIELD";
 
 export interface ModuleConfig {
-  type: ModuleType;
-  name: string;
-  cost: number; // Power cost to build
-  powerGen: number;
-  powerCons: number;
-  o2Gen: number;
-  o2Cons: number;
-  foodGen: number;
-  foodCons: number;
-  radReduction: number;
-  color: string;
+    type: ModuleType;
+    name: string;
+    cost: number;         // credits
+    powerGen: number;     // kW per second
+    powerDrain: number;   // kW per second (positive number)
+    manpowerGen: number;
+    manpowerDrain: number;
+    o2Gen: number;        // % per second
+    o2Drain: number;      // % per second (positive number)
+    description: string;
+    icon: string;         // path for designer
 }
 
-export interface GridCell {
-  x: number;
-  y: number;
-  module: ModuleConfig | null;
+export interface Cell {
+    module: ModuleType | null;
 }
 
-export interface Resources {
-  power: number;
-  o2: number;
-  food: number;
-  rad: number;
-}
-
-export interface ResourceDeltas {
-  powerDelta: number;
-  o2Delta: number;
-  foodDelta: number;
-  radDelta: number;
-}
-
-export interface GameStateData {
-  turn: number;
-  resources: Resources;
-  deltas: ResourceDeltas;
-  selectedModule: ModuleType | null;
-  grid: GridCell[][];
-  logs: string[];
-  isGameOver: boolean;
-  gameOverReason: string;
+export interface State {
+    credits: number;
+    manpower: number;
+    power: number;        // 0-100 kW
+    oxygen: number;       // 0-100 %
+    day: number;
+    timeSec: number;
+    selected: ModuleType | null;
+    grid: Cell[][];
+    blackoutTimer: number; // seconds power has been 0
+    logs: string[];
+    gameOver: boolean;
+    gameOverReason: string;
+    gameWon: boolean;
 }

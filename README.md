@@ -26,7 +26,7 @@ RESOURCES
 
 3. oxygen: 100%
 
-MODULE CATALOG (Name - Cost - Power Generation/Drain - O2 Output/Drain - Special Effect
+MODULE CATALOG (Name - Cost - Power Generation/Drain - O2 Output/Drain - Special Effect)
 
 1. Solar Array - $10 - +12kW - 0%O2 - Generating 0 kW during Lunar Night (Maybe Implement)
 2. Habitation - $15 - -3kW - -5%O2 - Required to house crew. Drains O2 Over time
@@ -59,8 +59,8 @@ LOOSE:
 
 - Oxygen Drops to 0%
 - Base run out of power for more than 10 seconds
-<<<<<<< Updated upstream
-=======
+  <<<<<<< Updated upstream
+  =======
 
 for devs:
 
@@ -196,5 +196,24 @@ Recommended alternative: replace with Meteor strike and Dust storm events (Tier 
 
 The doc distinguishes tiles that can stack on top of each other (pipes on modules) from tiles that can't.
 
-**Why deferred:** Already implicit in the current code. `if (cell.module !== null) return s;` prevents any stacking. Only meaningful if pipes are added.
->>>>>>> Stashed changes
+Why deferred: Already implicit in the current code. `if (cell.module !== null) return s;` prevents any stacking. Only meaningful if pipes are added.
+
+> > > > > > > Stashed changes
+
+### For Developers
+
+Run the following before running locally
+
+```
+npm init -y
+npm install rxjs
+npm install -D typescript vite
+```
+
+Then to run:
+
+```
+npx vite
+or
+npm run dev
+```

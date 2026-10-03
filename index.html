@@ -1,88 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Outpost Architect</title>
-  <style>
-    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #0b0e14; color: #e1e6f0; margin: 0; padding: 20px; display: flex; justify-content: center; }
-    .container { display: flex; gap: 20px; max-width: 1000px; width: 100%; }
-    .main-panel { display: flex; flex-direction: column; gap: 15px; }
-    canvas { background-color: #121824; border: 2px solid #2a3447; border-radius: 8px; cursor: pointer; }
-    .side-panel { display: flex; flex-direction: column; gap: 15px; width: 300px; }
-    .card { background-color: #1a2233; border: 1px solid #2a3447; border-radius: 8px; padding: 15px; }
-    h2, h3 { margin-top: 0; color: #4f9da6; }
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .stat-item { background: #121824; padding: 8px; border-radius: 4px; border-left: 3px solid #4f9da6; }
-    .stat-value { font-size: 1.2em; font-weight: bold; }
-    .stat-delta { font-size: 0.8em; }
-    .positive { color: #4ecca3; }
-    .negative { color: #e94560; }
-    .module-select { display: flex; flex-direction: column; gap: 8px; }
-    .btn { background-color: #2a3447; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-    .btn:hover { background-color: #3f4e6b; }
-    .btn.active { background-color: #00adb5; }
-    .btn-end-turn { background-color: #e94560; margin-top: 10px; font-size: 1.1em; }
-    .btn-end-turn:hover { background-color: #ff5974; }
-    #log { height: 120px; overflow-y: auto; font-size: 0.85em; display: flex; flex-direction: column; gap: 4px; }
-    .log-entry { padding: 4px; border-bottom: 1px solid #2a3447; }
-    .game-over-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; flex-direction: column; z-index: 100; }
-    .hidden { display: none !important; }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Outpost Architect</title>
 </head>
 <body>
-  <div class="container">
-    <div class="main-panel">
-      <canvas id="gridCanvas" width="500" height="500"></canvas>
-    </div>
-    
-    <div class="side-panel">
-      <div class="card">
-        <h3>Outpost Status</h3>
-        <div class="stat-grid">
-          <div class="stat-item">
-            <div>Power</div>
-            <div id="stat-power" class="stat-value">0</div>
-            <div id="delta-power" class="stat-delta"></div>
-          </div>
-          <div class="stat-item">
-            <div>Oxygen</div>
-            <div id="stat-o2" class="stat-value">0</div>
-            <div id="delta-o2" class="stat-delta"></div>
-          </div>
-          <div class="stat-item">
-            <div>Food</div>
-            <div id="stat-food" class="stat-value">0</div>
-            <div id="delta-food" class="stat-delta"></div>
-          </div>
-          <div class="stat-item">
-            <div>Radiation</div>
-            <div id="stat-rad" class="stat-value">0</div>
-            <div id="delta-rad" class="stat-delta"></div>
-          </div>
+    <div id="app">
+        <div id="topBar">
+            <h1>Outpost Architect</h1>
+            <div id="hud">
+                <div class="hud-item">
+                    <span class="label">Power</span>
+                    <span class="value" id="hud-power">50 / 100</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">Credits</span>
+                    <span class="value" id="hud-credits">$50</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">Manpower</span>
+                    <span class="value" id="hud-manpower">5</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">Oxygen</span>
+                    <span class="value" id="hud-oxygen">100%</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">Day</span>
+                    <span class="value" id="hud-day">Day 1</span>
+                </div>
+                <div class="hud-item">
+                    <span class="label">Time</span>
+                    <span class="value" id="hud-time">00:00</span>
+                </div>
+            </div>
+            <div></div>
         </div>
-        <button id="endTurnBtn" class="btn btn-end-turn" style="width: 100%;">End Turn</button>
-      </div>
 
-      <div class="card">
-        <h3>Build Modules</h3>
-        <div id="moduleList" class="module-select"></div>
-      </div>
+        <div id="game">
+            <aside id="sidePanel">
+                <h2>Build Menu</h2>
+                <div id="buildMenu"></div>
+            </aside>
 
-      <div class="card">
-        <h3>Log</h3>
-        <div id="log"></div>
-      </div>
+            <canvas id="gridCanvas"></canvas>
+
+            <aside id="rightPanel">
+                <h2>Outpost Log</h2>
+                <div id="log"></div>
+                <button id="restartBtn">Restart</button>
+            </aside>
+        </div>
     </div>
-  </div>
 
-  <div id="gameOver" class="game-over-overlay hidden">
-    <h1 style="color: #e94560; font-size: 3em;">STATION LOST</h1>
-    <p id="gameOverReason" style="font-size: 1.2em; margin-bottom: 20px;"></p>
-    <button id="restartBtn" class="btn" style="padding: 15px 30px; font-size: 1.2em;">Re-initialize Outpost</button>
-  </div>
+    <div id="overlay" class="hidden">
+        <h2 id="overlayTitle">OUTPOST LOST</h2>
+        <p id="overlayMsg"></p>
+    </div>
 
-  <script type="module" src="/src/index.ts"></script>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
