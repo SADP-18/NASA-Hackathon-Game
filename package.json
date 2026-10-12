@@ -1,0 +1,29 @@
+{
+  "name": "nasa-hackathon-game",
+  "version": "1.0.0",
+  "description": "grid based game tile entities involve: 1. living quarters 2. oxygen tank 3. generator 4. hydroponics 5.  statistics involved: 1. manpower 2. food 4. O2 5. power",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SADP-18/NASA-Hackathon-Game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/SADP-18/NASA-Hackathon-Game/issues"
+  },
+  "homepage": "https://github.com/SADP-18/NASA-Hackathon-Game#readme",
+  "dependencies": {
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

@@ -54,9 +54,11 @@ body {
 
 #hud {
     display: flex;
-    gap: 2em;
+    gap: 1.2em;
     font-family: monospace;
-    font-size: 0.9em;
+    font-size: 0.8em;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .hud-item {

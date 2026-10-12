@@ -5,52 +5,57 @@
     <title>Outpost Architect</title>
 </head>
 <body>
-    <div id="app">
-        <div id="topBar">
-            <h1>Outpost Architect</h1>
-            <div id="hud">
-                <div class="hud-item">
-                    <span class="label">Power</span>
-                    <span class="value" id="hud-power">50 / 100</span>
-                </div>
-                <div class="hud-item">
-                    <span class="label">Credits</span>
-                    <span class="value" id="hud-credits">$50</span>
-                </div>
-                <div class="hud-item">
-                    <span class="label">Manpower</span>
-                    <span class="value" id="hud-manpower">5</span>
-                </div>
-                <div class="hud-item">
-                    <span class="label">Oxygen</span>
-                    <span class="value" id="hud-oxygen">100%</span>
-                </div>
-                <div class="hud-item">
-                    <span class="label">Day</span>
-                    <span class="value" id="hud-day">Day 1</span>
-                </div>
-                <div class="hud-item">
-                    <span class="label">Time</span>
-                    <span class="value" id="hud-time">00:00</span>
-                </div>
+    <div id="topBar">
+        <h1>Outpost Architect</h1>
+        <div id="hud">
+            <div class="hud-item">
+                <span class="label">Power</span>
+                <span class="value" id="hud-power">50/100</span>
             </div>
-            <div></div>
+            <div class="hud-item">
+                <span class="label">Manpower</span>
+                <span class="value" id="hud-manpower">5</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Oxygen</span>
+                <span class="value" id="hud-oxygen">100%</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Food</span>
+                <span class="value" id="hud-food">50</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Stress</span>
+                <span class="value" id="hud-stress">0%</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Radiation</span>
+                <span class="value" id="hud-radiation">0%</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Credits</span>
+                <span class="value" id="hud-credits">$50</span>
+            </div>
+            <div class="hud-item">
+                <span class="label">Day</span>
+                <span class="value" id="hud-day">Day 1</span>
+            </div>
         </div>
+    </div>
 
-        <div id="game">
-            <aside id="sidePanel">
-                <h2>Build Menu</h2>
-                <div id="buildMenu"></div>
-            </aside>
+    <div id="game">
+        <aside id="sidePanel">
+            <h2>Build Menu</h2>
+            <div id="buildMenu"></div>
+        </aside>
 
-            <canvas id="gridCanvas"></canvas>
+        <canvas id="gridCanvas"></canvas>
 
-            <aside id="rightPanel">
-                <h2>Outpost Log</h2>
-                <div id="log"></div>
-                <button id="restartBtn">Restart</button>
-            </aside>
-        </div>
+        <aside id="rightPanel">
+            <h2>Outpost Log</h2>
+            <div id="log"></div>
+            <button id="restartBtn">Restart</button>
+        </aside>
     </div>
 
     <div id="overlay" class="hidden">

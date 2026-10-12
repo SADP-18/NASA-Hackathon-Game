@@ -4,18 +4,54 @@ export const GRID_SIZE = 10;
 export const CELL_SIZE = 60; // px
 
 export const MAX_POWER = 100;
+export const MAX_OXYGEN = 100;
+export const MAX_FOOD = 100;
+export const MAX_STRESS = 100;
+export const MAX_RADIATION = 100;
+
+
 export const START_POWER = 50;
 export const START_MANPOWER = 5;
 export const START_OXYGEN = 100;
+export const START_FOOD = 50;
+export const START_STRESS = 0;
+export const START_RADIATION = 0;
 export const START_CREDITS = 50;
 
 export const CREDITS_PER_DAY = 5;
 export const TICKS_PER_DAY   = 24;      // 24 seconds per day
 export const WIN_DAYS = 30;
 export const BLACKOUT_GRACE = 10;     // seconds of no power before losing
-export const BLACKOUT_O2_DRAIN = 10;  // % per sec when blackout + hydro present
+
+export const COVERAGE_POWER = 3;    // Solar powers tiles within this Manhattan radius
+
+export const COVERAGE_O2 = 2;      // Hydro supplies O2 within this radius
+
+// Random event probabilities (per tick)
+export const P_METEOR = 0.02;
+export const P_DUST_STORM = 0.01;
+export const P_SOLAR_FLARE = 0.01;
+export const DUST_STORM_DURATION = 30;
 
 export const MODULES: Record<ModuleType, ModuleConfig> = {
+    BASE: {
+        type:"BASE",
+        name: "Command Hub",
+        cost: 0,
+        powerGen: 5,
+        powerDrain: 0,
+        manpowerGen: 0,
+        manpowerDrain: 0,
+        o2Gen: 5,
+        o2Drain: 0,
+        foodGen: 2,
+        foodDrain: 0,
+        stressGen: 0,
+        stressReduce: 1,
+        radReduce: 1,
+        description: "Starting base. Always active.",
+        icon: "/icons/base.svg", 
+    },
     SOLAR: {
         type: "SOLAR",
         name: "Solar Array",
@@ -26,6 +62,11 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         manpowerDrain: 1,
         o2Gen: 0,
         o2Drain: 0,
+        foodGen: 0,
+        foodDrain: 0,
+        stressGen: 0,
+        stressReduce: 0,
+        radReduce: 0,
         description: "+12 kW. Requires 1 manpower to operate.",
         icon: "/icons/solar.png",
     },
@@ -38,8 +79,13 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         manpowerGen: 2,
         manpowerDrain: 0,
         o2Gen: 0,
-        o2Drain: 5,
-        description: "-3 kW, -5% O2. Produces 2 manpower.",
+        o2Drain: 3,
+        foodGen: 0,
+        foodDrain: 3,
+        stressGen: 0,
+        stressReduce: 0,
+        radReduce: 0,
+        description: "-3 kW, -3 O2, -3 food. +2 manpower. Emits radiation.",
         icon: "/icons/hab.png",
     },
     HYDRO: {
@@ -52,20 +98,48 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         manpowerDrain: 1,
         o2Gen: 15,
         o2Drain: 0,
-        description: "-8 kW, +15% O2. Requires 1 manpower.",
+        foodGen: 5,
+        foodDrain: 0,
+        stressGen: 0,
+        stressReduce: 0,
+        radReduce: 0,
+        description: "-8 kW, +15 O2, +5 food. Supplies O2 within radius 2.",
         icon: "/icons/hydro.png",
     },
-    /*
     SHIELD: {
         type: "SHIELD",
         name: "Radiation Shield",
         cost: 25,
         powerGen: 0,
         powerDrain: 5,
+        manpowerGen: 0,
+        manpowerDrain: 1,
         o2Gen: 0,
         o2Drain: 0,
-        description: "-5 kW. Protects adjacent habitats.",
-        icon: "/icons/shield.png",
+        foodGen: 0,
+        foodDrain: 0,
+        stressGen: 0,
+        stressReduce: 0,
+        radReduce: 3,
+        description: "-5 kW. Shields adjacent habitats from radiation.",
+        icon: "/icons/shield.svg",
     },
-    */
+    MEDICAL: {
+        type: "MEDICAL",
+        name: "Medical Bay",
+        cost: 30,
+        powerGen: 0,
+        powerDrain: 5,
+        manpowerGen: 0,
+        manpowerDrain: 2,
+        o2Gen: 0,
+        o2Drain: 0,
+        foodGen: 0,
+        foodDrain: 0,
+        stressGen: 0,
+        stressReduce: 4,
+        radReduce: 0,
+        description: "-5 kW. Reduces crew stress.",
+        icon: "/icons/medical.svg",
+    },
 };

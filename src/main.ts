@@ -14,15 +14,28 @@ import {
     GRID_SIZE,
     CELL_SIZE,
     MAX_POWER,
+    MAX_OXYGEN,
+    MAX_FOOD,
+    MAX_STRESS,
+    MAX_RADIATION,
     START_POWER,
+    START_MANPOWER,
     START_OXYGEN,
+    START_FOOD,
+    START_STRESS,
+    START_RADIATION,
     START_CREDITS,
     CREDITS_PER_DAY,
     TICKS_PER_DAY,
     WIN_DAYS,
     BLACKOUT_GRACE,
+    COVERAGE_POWER,
+    COVERAGE_O2,
+    P_METEOR,
+    P_DUST_STORM,
+    P_SOLAR_FLARE,
+    DUST_STORM_DURATION,
     MODULES,
-    START_MANPOWER,
 } from "./config";
 import { Cell, ModuleType, State } from "./types";
 
@@ -32,23 +45,34 @@ const createGrid = (): Cell[][] =>
         Array.from({ length: GRID_SIZE }, () => ({ module: null })),
     );
 
+const createInitialGrid = (): Cell[][] => {
+    const grid = createGrid();
+    const c = Math.floor(GRID_SIZE / 2);
+    grid[c][c] = { module: "BASE" };
+    return grid;
+};
+
 const initialState: State = {
     credits: START_CREDITS,
     power: START_POWER,
     manpower: START_MANPOWER,
     oxygen: START_OXYGEN,
+    food: START_FOOD,
+    stress: START_STRESS,
+    radiation: START_RADIATION,
     day: 1,
     timeSec: 0,
     selected: null,
-    grid: createGrid(),
+    grid: createInitialGrid(),
     blackoutTimer: 0,
+    dustStormTimer: 0,
     logs: ["Outpost online. Awaiting construction."],
     gameOver: false,
     gameOverReason: "",
     gameWon: false,
 };
 
-/* ========== HELPERS ========== */
+/* ==========  HELPERS ========== */
 /**
  * Converts seconds that passes in the current day into an in-game clock (HH:00).
  */
@@ -56,6 +80,55 @@ const formatGameTime = (timeSec: number): string => {
     const hours = Math.floor((timeSec / TICKS_PER_DAY) * 24);
     return `${String(hours).padStart(2, "0")}:00`;
 }
+ //     COVERAGE
+const computeCoverage = (
+    grid: Cell[][],
+    source: ModuleType,
+    radius: number,
+): boolean[][] => {
+    const covered = Array.from({ length: GRID_SIZE }, () =>
+        Array(GRID_SIZE).fill(false),
+    );
+    for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+            if (grid[x][y].module !== source) continue;
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    if (Math.abs(dx) + Math.abs(dy) > radius) continue;
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                        covered[nx][ny] = true;
+                    }
+                }
+            }
+        }
+    }
+    return covered;
+};
+
+// SHIELD
+const hasAdjacentShield = (grid: Cell[][], x: number, y: number): boolean => {
+    const dirs: [number, number][] = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+    ];
+    return dirs.some(([dx, dy]) => {
+        const nx = x + dx;
+        const ny = y + dy;
+        return (
+            nx >= 0 &&
+            nx < GRID_SIZE &&
+            ny >= 0 &&
+            ny < GRID_SIZE &&
+            grid[nx][ny].module === "SHIELD"
+        );
+    });
+};
+
+
 
 /* ===== PURE REDUCERS ===== */
 type Reducer = (s: State) => State;
@@ -94,56 +167,122 @@ const placeModule = (x: number, y: number): Reducer => s => {
     };
 };
 
-/* ===== SIMULATION TICK (1 second) ===== */
+/* ===== SIMULATION TICK ===== */
 const tick: Reducer = s => {
     if (s.gameOver || s.gameWon) return s;
 
-    // Sum module output
+    // Coverage maps for this tick
+    const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
+    const oxygenated = computeCoverage(s.grid, "HYDRO", COVERAGE_O2);
+
+    // Accumulate output from active modules
     let powerGen = 0, powerDrain = 0;
     let manpowerGen = 0, manpowerDrain = 0;
     let o2Gen = 0, o2Drain = 0;
-    let hydroCount = 0;
+    let foodGen = 0, foodDrain = 0;
+    let stressGen = 0, stressReduce = 0;
+    let radReduce = 0;
+    let habCount = 0;
+    let shieldedHabs = 0;
 
-    s.grid.forEach(col =>
-        col.forEach(cell => {
-            if (!cell.module) return;
+    for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+            const cell = s.grid[x][y];
+            if (!cell.module) continue;
+
             const cfg = MODULES[cell.module];
+            const selfPowered = cell.module === "SOLAR" || cell.module === "BASE";
+            const isPowered = selfPowered || powered[x][y];
+
+            if (!isPowered) continue;
+
             powerGen += cfg.powerGen;
             powerDrain += cfg.powerDrain;
             manpowerGen += cfg.manpowerGen;
             manpowerDrain += cfg.manpowerDrain;
             o2Gen += cfg.o2Gen;
             o2Drain += cfg.o2Drain;
-            if (cell.module === "HYDRO") hydroCount++;
-        }),
-    );
+            foodGen += cfg.foodGen;
+            foodDrain += cfg.foodDrain;
+            stressGen += cfg.stressGen;
+            stressReduce += cfg.stressReduce;
+            radReduce += cfg.radReduce;
 
-    const netPower = powerGen - powerDrain;
+            if (cell.module === "HAB") {
+                habCount++;
+                if (hasAdjacentShield(s.grid, x, y)) shieldedHabs++;
+            }
+        }
+    }
+
+    // Dust storm halves solar output
+    const effectivePowerGen =
+        s.dustStormTimer > 0 ? powerGen - (powerGen - powerDrain) * 0.5 : powerGen;
+    const netPower = effectivePowerGen - powerDrain;
+
     let newPower = Math.max(0, Math.min(MAX_POWER, s.power + netPower));
 
     // Blackout tracking
-    const inBlackout = netPower <= 0 && netPower < 0;
+    const inBlackout = newPower <= 0 && netPower < 0;
     const newBlackoutTimer = inBlackout ? s.blackoutTimer + 1 : 0;
 
     // Manpower
-    const newManpower = Math.max(0, s.manpower = manpowerGen - manpowerDrain);
+    const netManpower = manpowerGen - manpowerDrain;
+    let newManpower = Math.max(0, s.manpower + netManpower);
 
-    // Oxygen change: hydroponics must have power to run
+    // Oxygen — uncovered habitats drain extra
+    let uncoveredHabDrain = 0;
+    for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+            if (s.grid[x][y].module === "HAB" && !oxygenated[x][y]) {
+                uncoveredHabDrain += 3;
+            }
+        }
+    }
     const effectiveO2Gen = newPower > 0 ? o2Gen : 0;
-    const netO2 = effectiveO2Gen - o2Drain;
-    let newOxygen = Math.max(0, Math.min(100, s.oxygen + netO2));
+    const netO2 = effectiveO2Gen - o2Drain - uncoveredHabDrain;
+    let newOxygen = Math.max(0, Math.min(MAX_OXYGEN, s.oxygen + netO2));
+
+    // Food
+    const netFood = foodGen - foodDrain;
+    let newFood = Math.max(0, Math.min(MAX_FOOD, s.food + netFood));
+
+    // Stress
+    let stressDelta = stressGen - stressReduce;
+    if (newFood <= 0) stressDelta += 2;
+    if (newManpower <= 0) stressDelta += 1;
+    let newStress = Math.max(0, Math.min(MAX_STRESS, s.stress + stressDelta));
+
+    // Radiation — unshielded habs contribute
+    const radFromHabs = (habCount - shieldedHabs) * 1.5;
+    const radDelta = radFromHabs - radReduce;
+    let newRadiation = Math.max(0, Math.min(MAX_RADIATION, s.radiation + radDelta));
 
     // Time / Day advance
     const newTime     = s.timeSec + 1;
     const advancedDay = newTime >= TICKS_PER_DAY;
     const newDay      = advancedDay ? s.day + 1 : s.day;
     const newCredits  = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
-    const newLogs = advancedDay
-        ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
-        : s.logs;
-    
-    const blackoutStarted = newBlackoutTimer === 1 && s.blackoutTimer === 0;
-    const finalLogs = blackoutStarted ? [`WARNING: Power depleted. ${BLACKOUT_GRACE}s until system failure.`, ...newLogs] : newLogs;
+
+    // Random events
+    const events: string[] = [];
+
+    if (Math.random() < P_METEOR) {
+        const dmg = 5 + Math.floor(Math.random() * 10);
+        newPower = Math.max(0, newPower - dmg);
+        events.push(`METEOR STRIKE: -${dmg} power`);
+    }
+
+    let newDustStormTimer = Math.max(0, s.dustStormTimer - 1);
+    if (Math.random() < P_DUST_STORM && newDustStormTimer === 0) {
+        newDustStormTimer = DUST_STORM_DURATION;
+        events.push(`DUST STORM: Solar output halved for ${DUST_STORM_DURATION}s`);
+    }
+
+    if (Math.random() < P_SOLAR_FLARE) {
+        newOxygen = Math.max(0, newOxygen - 8);
+        events.push("SOLAR FLARE: -8% oxygen");
+    }
 
     // Losing conditions
     let gameOver = false;
@@ -156,27 +295,42 @@ const tick: Reducer = s => {
     } else if (newBlackoutTimer >= BLACKOUT_GRACE) {
         gameOver = true;
         reason = `Base without power for ${BLACKOUT_GRACE}s. Systems failed.`;
-    } else if (newManpower <= 0 && manpowerDrain > manpowerGen) {
+    } else if (newManpower <= 0 && netManpower < 0) {
         gameOver = true;
         reason = "Manpower exchausted. Crew cannot operate."
+    } else if (newStress >= MAX_STRESS) {
+        gameOver = true;
+        reason = "Crew stress critical. Mutiny.";
+    } else if (newRadiation >= MAX_RADIATION) {
+        gameOver = true;
+        reason = "Radiation critical. Crew poisoned.";
     }
 
-    // Winning condition
     if (!gameOver && newDay > WIN_DAYS) {
         gameWon = true;
         reason = `Survived ${WIN_DAYS} days! Outpost is sustainable.`;
     }
+
+    const dayLog = advancedDay
+        ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
+        : s.logs;
+    const endLog = gameOver || gameWon ? [reason] : [];
+    
 
     return {
         ...s,
         power: newPower,
         manpower: newManpower,
         oxygen: newOxygen,
+        food: newFood,
+        stress: newStress,
+        radiation: newRadiation,
         credits: newCredits,
         day: newDay,
         timeSec: advancedDay ? 0 : newTime,
         blackoutTimer: newBlackoutTimer,
-        logs: gameOver || gameWon ? [reason, ...newLogs] : newLogs,
+        dustStormTimer: newDustStormTimer,
+        logs: [...events, ...dayLog, ...endLog, ...s.logs].slice(0, 50),
         gameOver,
         gameWon,
         gameOverReason: reason,
@@ -185,7 +339,7 @@ const tick: Reducer = s => {
 
 const restart = (): State => ({
     ...initialState,
-    grid: createGrid(),
+    grid: createInitialGrid(),
     logs: ["Outpost re-initialized."],
 });
 
@@ -205,15 +359,25 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         // --- Grid ---
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Coverage overlay (subtle background tint)
+        const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
+        const oxygenated = computeCoverage(s.grid, "HYDRO", COVERAGE_O2);
+
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
                 const cell = s.grid[x][y];
                 const px = x * CELL_SIZE;
                 const py = y * CELL_SIZE;
 
-                // Base tile (transparent so CSS background shows through)
-                ctx.fillStyle = "rgba(0,0,0,0)";
-                ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+                // Coverage tint
+                if (powered[x][y]) {
+                    ctx.fillStyle = "rgba(78, 204, 163, 0.06)";
+                    ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+                }
+                if (oxygenated[x][y]) {
+                    ctx.fillStyle = "rgba(120, 180, 255, 0.06)";
+                    ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+                }
 
                 // Grid outline
                 ctx.strokeStyle = "rgba(255,255,255,0.15)";
@@ -237,26 +401,35 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         }
 
         // --- HUD ---
-        let netPower = 0;
-        s.grid.forEach(col => 
-            col.forEach(cell =>{
-                if (!cell.module) return;
-                netPower += MODULES[cell.module].powerGen - MODULES[cell.module].powerDrain;
-            }),
+        const setHud = (
+            id: string,
+            val: string,
+            color: string = "",
+        ) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerText = val;
+                if (color) el.style.color = color;
+            }
+        };
+
+        const powerNet = Math.round(
+            s.power > 0
+                ? s.power + (s.dustStormTimer > 0 ? -1 : 1)
+                : 0,
         );
-
-        const powerEl = document.getElementById("hud-power");
-        if (powerEl) {
-            const sign = netPower >= 0 ? "+" : "";
-            powerEl.innerText = `${Math.round(s.power)}/${MAX_POWER} (${sign}${netPower}/s)`;
-            powerEl.style.color = netPower < 0 ? "#ff5c5c" : netPower > 0 ? "#4ecca3" : "";
-        }
-
-        setText("hud-manpower",  String(s.manpower));
-        setText("hud-oxygen",    `${Math.round(s.oxygen)}%`);
-        setText("hud-credits",   `$${s.credits}`);
-        setText("hud-day",       `Day ${s.day}`);
-        setText("hud-time",      formatGameTime(s.timeSec));
+        setHud(
+            "hud-power",
+            `${Math.round(s.power)}/${MAX_POWER}`,
+            s.power < 20 ? "#ff5c5c" : "",
+        );
+        setHud("hud-manpower", String(s.manpower), s.manpower < 2 ? "#ff5c5c" : "");
+        setHud("hud-oxygen", `${Math.round(s.oxygen)}%`, s.oxygen < 20 ? "#ff5c5c" : "");
+        setHud("hud-food", `${Math.round(s.food)}`, s.food < 10 ? "#ff5c5c" : "");
+        setHud("hud-stress", `${Math.round(s.stress)}%`, s.stress > 60 ? "#ff5c5c" : "");
+        setHud("hud-radiation", `${Math.round(s.radiation)}%`, s.radiation > 60 ? "#ff5c5c" : "");
+        setHud("hud-credits", `$${s.credits}`);
+        setHud("hud-day", `Day ${s.day}`);
 
         // --- Selected module highlight ---
         document.querySelectorAll<HTMLElement>(".module-btn").forEach(btn => {
@@ -266,19 +439,19 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         // --- Logs ---
         const logEl = document.getElementById("log");
         if (logEl) {
-            logEl.innerHTML = s.logs.slice(0, 10).map(l => `<div>${l}</div>`).join("");
+            logEl.innerHTML = s.logs.slice(0, 12).map(l => `<div>${l}</div>`).join("");
         }
 
         // --- Game over / win overlay ---
         const overlay = document.getElementById("overlay");
-        const overlayTitle = document.getElementById("overlayTitle");
-        const overlayMsg = document.getElementById("overlayMsg");
-        if (overlay && overlayTitle && overlayMsg) {
+        const title = document.getElementById("overlayTitle");
+        const msg = document.getElementById("overlayMsg");
+        if (overlay && title && msg) {
             if (s.gameOver || s.gameWon) {
                 overlay.classList.remove("hidden");
-                overlayTitle.innerText = s.gameWon ? "OUTPOST SUSTAINABLE" : "OUTPOST LOST";
-                overlayTitle.style.color = s.gameWon ? "#4ecca3" : "#ff5c5c";
-                overlayMsg.innerText = s.gameOverReason;
+                title.innerText = s.gameWon ? "OUTPOST SUSTAINABLE" : "OUTPOST LOST";
+                title.style.color = s.gameWon ? "#4ecca3" : "#ff5c5c";
+                msg.innerText = s.gameOverReason;
             } else {
                 overlay.classList.add("hidden");
             }
@@ -286,14 +459,8 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
     };
 };
 
-const setText = (id: string, val: string) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = val;
-};
-
 /* ===== STREAMS ===== */
 const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
-    // Grid click → place module
     const click$: Observable<Reducer> = fromEvent<MouseEvent>(canvas, "click").pipe(
         map(e => {
             const rect = canvas.getBoundingClientRect();
@@ -305,9 +472,8 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
 
     // Module select buttons (matched by data-module attribute)
     const select$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
-        map(e => (e.target as HTMLElement).closest<HTMLElement>(".module-btn")),
-        filter((btn): btn is HTMLElement => btn !== null),
-        map(btn => selectModule(btn.dataset.module as ModuleType))
+        filter(e => (e.target as HTMLElement).dataset?.module !== undefined),
+        map(e => selectModule((e.target as HTMLElement).dataset.module as ModuleType)),
     );
 
     // Restart button
@@ -323,9 +489,7 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
 
     return restart$.pipe(
         startWith(initialState),
-        switchMap(initial =>
-            events$.pipe(scan((s, r) => r(s), initial)),
-        ),
+        switchMap(initial => events$.pipe(scan((s, r) => r(s), initial))),
     );
 };
 
@@ -337,39 +501,30 @@ if (typeof window !== "undefined") {
 
     // Build module buttons from MODULES config
     const menu = document.getElementById("buildMenu")!;
-    (Object.keys(MODULES) as ModuleType[]).forEach(key => {
-        const cfg = MODULES[key];
-        const btn = document.createElement("button");
-        btn.className = "module-btn";
-        btn.dataset.module = key;
-        btn.title = cfg.description;
+    (Object.keys(MODULES) as ModuleType[])
+        .filter(k => k !== "BASE")
+        .forEach(key => {
+            const cfg = MODULES[key];
+            const btn = document.createElement("button");
+            btn.className = "module-btn";
+            btn.dataset.module = key;
+            btn.title = cfg.description;
 
-        const fmt = (n: number): string => (n > 0 ? `+${n}` : `${n}`);
+            const img = document.createElement("img");
+            img.src = cfg.icon;
+            img.alt = cfg.name;
+            img.onerror = () => { img.style.visibility = "hidden"; };
+            btn.appendChild(img);
 
-        // Left: placeholder "icon" (swap for <img> later - replace /icons/*.svg)
-        const icon       = document.createElement("div");
-        icon.className   = "module-icon";
-        icon.textContent = key.slice(0, 3);
+            const label = document.createElement("span");
+            label.className = "module-label";
+            label.innerHTML = `
+                <span class="name">${cfg.name}</span>
+                <span class="cost">$${cfg.cost}</span>`;
+            btn.appendChild(label);
 
-        // const icon     = document.createElement("img");
-        // icon.className = "module-icon";
-        // icon.src       = cfg.icon;
-        // icon.alt       = cfg.name;
-
-        // Right: title, cost, manpower number needed
-        const info = document.createElement("div");
-        info.className = "mdoule-info";
-        info.innerHTML = `
-            <div class="name"><h2>${cfg.name}</h2></div>
-            <div class="cost">Cost: $${cfg.cost}</div>
-            <div class="manpower">Manpower Needed: ${cfg.manpowerDrain}</div>
-            <div class="power">Power: ${
-                fmt(cfg.powerGen - cfg.powerDrain)} kW/s</div>
-            <div class="oxygen">O₂: ${
-                fmt(cfg.o2Gen - cfg.o2Drain)}%/s</div>`;
-        btn.append(icon, info);
-        menu.appendChild(btn);
-    });
+            menu.appendChild(btn);
+        });
 
     state$(canvas).subscribe(render(canvas));
 }

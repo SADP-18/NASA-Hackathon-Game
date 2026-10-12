@@ -1,4 +1,4 @@
-export type ModuleType = "SOLAR" | "HAB" | "HYDRO" // | "SHIELD";
+export type ModuleType = "BASE" | "SOLAR" | "HAB" | "HYDRO" | "SHIELD" | "MEDICAL";
 
 export interface ModuleConfig {
     type: ModuleType;
@@ -10,6 +10,11 @@ export interface ModuleConfig {
     manpowerDrain: number;
     o2Gen: number;        // % per second
     o2Drain: number;      // % per second (positive number)
+    foodGen: number;
+    foodDrain: number;
+    stressGen: number; // stress produced
+    stressReduce: number; // stress reduced
+    radReduce: number; 
     description: string;
     icon: string;         // path for designer
 }
@@ -23,11 +28,15 @@ export interface State {
     manpower: number;
     power: number;        // 0-100 kW
     oxygen: number;       // 0-100 %
+    food: number;
+    stress: number;
+    radiation: number;
     day: number;
     timeSec: number;
     selected: ModuleType | null;
     grid: Cell[][];
     blackoutTimer: number; // seconds power has been 0
+    dustStormTimer: number;
     logs: string[];
     gameOver: boolean;
     gameOverReason: string;
