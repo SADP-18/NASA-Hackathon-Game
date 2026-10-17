@@ -27,15 +27,12 @@ import {
     START_CREDITS,
     CREDITS_PER_DAY,
     TICKS_PER_DAY,
-    WIN_DAYS,
     BLACKOUT_GRACE,
     COVERAGE_POWER,
     COVERAGE_O2,
-    P_METEOR,
-    P_DUST_STORM,
-    P_SOLAR_FLARE,
     DUST_STORM_DURATION,
     MODULES,
+    LEVELS
 } from "./config";
 import { Cell, ModuleType, State } from "./types";
 
@@ -52,7 +49,7 @@ const createInitialGrid = (): Cell[][] => {
     return grid;
 };
 
-const initialState: State = {
+const createLevelState = (level: number): State => ({
     credits: START_CREDITS,
     power: START_POWER,
     manpower: START_MANPOWER,
@@ -66,11 +63,15 @@ const initialState: State = {
     grid: createInitialGrid(),
     blackoutTimer: 0,
     dustStormTimer: 0,
-    logs: ["Outpost online. Awaiting construction."],
+    logs: [level === 1 ? "Outpost online. Awaiting construction." : `Level ${level} begins.`],
     gameOver: false,
     gameOverReason: "",
     gameWon: false,
-};
+    level,
+    levelComplete: false
+});
+
+const initialState: State = createLevelState(1);
 
 /* ==========  HELPERS ========== */
 /**
@@ -80,7 +81,7 @@ const formatGameTime = (timeSec: number): string => {
     const hours = Math.floor((timeSec / TICKS_PER_DAY) * 24);
     return `${String(hours).padStart(2, "0")}:00`;
 }
- //     COVERAGE
+//     COVERAGE
 const computeCoverage = (
     grid: Cell[][],
     source: ModuleType,
@@ -139,14 +140,14 @@ const selectModule = (type: ModuleType): Reducer => s => ({
 });
 
 const placeModule = (x: number, y: number): Reducer => s => {
-    if (s.gameOver || s.gameWon || !s.selected) return s;
+    if (s.gameOver || s.gameWon || s.levelComplete || !s.selected) return s;
     if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return s;
     if (s.grid[x][y].module !== null) return s;
 
     const cfg = MODULES[s.selected];
     // Manpower gate - cannot build if there is now crew
     if (s.manpower < cfg.manpowerDrain) {
-        return {...s, logs: [`Not enough manpower for ${cfg.name}.`, ...s.logs]};
+        return { ...s, logs: [`Not enough manpower for ${cfg.name}.`, ...s.logs] };
     }
 
     if (s.credits < cfg.cost) {
@@ -169,7 +170,8 @@ const placeModule = (x: number, y: number): Reducer => s => {
 
 /* ===== SIMULATION TICK ===== */
 const tick: Reducer = s => {
-    if (s.gameOver || s.gameWon) return s;
+    if (s.gameOver || s.gameWon || s.levelComplete) return s;
+    const lvl = LEVELS[s.level - 1];
 
     // Coverage maps for this tick
     const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
@@ -259,27 +261,27 @@ const tick: Reducer = s => {
     let newRadiation = Math.max(0, Math.min(MAX_RADIATION, s.radiation + radDelta));
 
     // Time / Day advance
-    const newTime     = s.timeSec + 1;
+    const newTime = s.timeSec + 1;
     const advancedDay = newTime >= TICKS_PER_DAY;
-    const newDay      = advancedDay ? s.day + 1 : s.day;
-    const newCredits  = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
+    const newDay = advancedDay ? s.day + 1 : s.day;
+    const newCredits = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
 
     // Random events
     const events: string[] = [];
 
-    if (Math.random() < P_METEOR) {
+    if (Math.random() < lvl.pMeteor) {
         const dmg = 5 + Math.floor(Math.random() * 10);
         newPower = Math.max(0, newPower - dmg);
         events.push(`METEOR STRIKE: -${dmg} power`);
     }
 
     let newDustStormTimer = Math.max(0, s.dustStormTimer - 1);
-    if (Math.random() < P_DUST_STORM && newDustStormTimer === 0) {
+    if (Math.random() < lvl.pDustStorm && newDustStormTimer === 0) {
         newDustStormTimer = DUST_STORM_DURATION;
         events.push(`DUST STORM: Solar output halved for ${DUST_STORM_DURATION}s`);
     }
 
-    if (Math.random() < P_SOLAR_FLARE) {
+    if (Math.random() < lvl.pSolarFlare) {
         newOxygen = Math.max(0, newOxygen - 8);
         events.push("SOLAR FLARE: -8% oxygen");
     }
@@ -306,16 +308,23 @@ const tick: Reducer = s => {
         reason = "Radiation critical. Crew poisoned.";
     }
 
-    if (!gameOver && newDay > WIN_DAYS) {
-        gameWon = true;
-        reason = `Survived ${WIN_DAYS} days! Outpost is sustainable.`;
+    let levelComplete = false;
+
+    if (!gameOver && newDay > lvl.winDays) {
+        if (s.level >= LEVELS.length) {
+            gameWon = true;
+            reason = "All levels cleared! Outpost is sustainable.";
+        } else {
+            levelComplete = true;
+            reason = `Level ${s.level} complete! Survived ${lvl.winDays} days.`;
+        }
     }
 
     const dayLog = advancedDay
         ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
         : s.logs;
-    const endLog = gameOver || gameWon ? [reason] : [];
-    
+
+    const endLog = gameOver || gameWon || levelComplete ? [reason] : [];
 
     return {
         ...s,
@@ -330,18 +339,15 @@ const tick: Reducer = s => {
         timeSec: advancedDay ? 0 : newTime,
         blackoutTimer: newBlackoutTimer,
         dustStormTimer: newDustStormTimer,
-        logs: [...events, ...dayLog, ...endLog, ...s.logs].slice(0, 50),
+        logs: [...events, ...endLog, ...dayLog].slice(0, 50),
         gameOver,
         gameWon,
+        levelComplete,
         gameOverReason: reason,
     };
 };
 
-const restart = (): State => ({
-    ...initialState,
-    grid: createInitialGrid(),
-    logs: ["Outpost re-initialized."],
-});
+const restart = (): State => createLevelState(1);
 
 /* ===== RENDER (side effects) ===== */
 const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
@@ -430,6 +436,8 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         setHud("hud-radiation", `${Math.round(s.radiation)}%`, s.radiation > 60 ? "#ff5c5c" : "");
         setHud("hud-credits", `$${s.credits}`);
         setHud("hud-day", `Day ${s.day}`);
+        setHud("hud-time", formatGameTime(s.timeSec));
+        setHud("hud-level", `${s.level}/${LEVELS.length}`);
 
         // --- Selected module highlight ---
         document.querySelectorAll<HTMLElement>(".module-btn").forEach(btn => {
@@ -446,12 +454,14 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         const overlay = document.getElementById("overlay");
         const title = document.getElementById("overlayTitle");
         const msg = document.getElementById("overlayMsg");
-        if (overlay && title && msg) {
-            if (s.gameOver || s.gameWon) {
+        const nextBtn = document.getElementById("nextLevelBtn");
+        if (overlay && title && msg && nextBtn) {
+            if (s.gameOver || s.gameWon || s.levelComplete) {
                 overlay.classList.remove("hidden");
-                title.innerText = s.gameWon ? "OUTPOST SUSTAINABLE" : "OUTPOST LOST";
-                title.style.color = s.gameWon ? "#4ecca3" : "#ff5c5c";
+                title.innerText = s.gameWon ? "OUTPOST SUSTAINABLE" : s.levelComplete ? "LEVEL COMPLETE" : "OUTPOST LOST";
+                title.style.color = s.gameOver ? "#ff5c5c" : "#4ecca3";
                 msg.innerText = s.gameOverReason;
+                nextBtn.classList.toggle("hidden", !s.levelComplete);
             } else {
                 overlay.classList.add("hidden");
             }
@@ -472,8 +482,9 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
 
     // Module select buttons (matched by data-module attribute)
     const select$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
-        filter(e => (e.target as HTMLElement).dataset?.module !== undefined),
-        map(e => selectModule((e.target as HTMLElement).dataset.module as ModuleType)),
+        map(e => (e.target as HTMLElement).closest<HTMLElement>(".module-btn")),
+        filter((btn): btn is HTMLElement => btn !== null),
+        map(btn => selectModule(btn.dataset.module as ModuleType)),
     );
 
     // Restart button
@@ -482,10 +493,17 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
         map(() => restart()),
     );
 
+    const nextLevel$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
+        filter(e => (e.target as HTMLElement).id === "nextLevelBtn"),
+        map(() => (s: State) => (s.levelComplete ? createLevelState(s.level + 1) : s)),
+    );
+
     // Simulation tick — 1 second
     const tick$: Observable<Reducer> = interval(1000).pipe(map(() => tick));
 
-    const events$ = merge(click$, select$, tick$);
+    // const events$ = merge(click$, select$, tick$);
+
+    const events$ = merge(click$, select$, tick$, nextLevel$);
 
     return restart$.pipe(
         startWith(initialState),

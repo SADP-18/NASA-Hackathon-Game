@@ -1,4 +1,4 @@
-import { ModuleConfig, ModuleType } from "./types";
+import { LevelConfig, ModuleConfig, ModuleType } from "./types";
 
 export const GRID_SIZE = 10;
 export const CELL_SIZE = 60; // px
@@ -19,23 +19,18 @@ export const START_RADIATION = 0;
 export const START_CREDITS = 50;
 
 export const CREDITS_PER_DAY = 5;
-export const TICKS_PER_DAY   = 24;      // 24 seconds per day
-export const WIN_DAYS = 30;
+export const TICKS_PER_DAY = 24;      // 24 seconds per day
 export const BLACKOUT_GRACE = 10;     // seconds of no power before losing
 
 export const COVERAGE_POWER = 3;    // Solar powers tiles within this Manhattan radius
 
 export const COVERAGE_O2 = 2;      // Hydro supplies O2 within this radius
 
-// Random event probabilities (per tick)
-export const P_METEOR = 0.02;
-export const P_DUST_STORM = 0.01;
-export const P_SOLAR_FLARE = 0.01;
 export const DUST_STORM_DURATION = 30;
 
 export const MODULES: Record<ModuleType, ModuleConfig> = {
     BASE: {
-        type:"BASE",
+        type: "BASE",
         name: "Command Hub",
         cost: 0,
         powerGen: 5,
@@ -50,7 +45,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressReduce: 1,
         radReduce: 1,
         description: "Starting base. Always active.",
-        icon: "/icons/base.svg", 
+        icon: "/icons/base.svg",
     },
     SOLAR: {
         type: "SOLAR",
@@ -143,3 +138,9 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         icon: "/icons/medical.svg",
     },
 };
+
+export const LEVELS: LevelConfig[] = [
+    { winDays: 10, pMeteor: 0.02, pDustStorm: 0.01, pSolarFlare: 0.01 },
+    { winDays: 20, pMeteor: 0.03, pDustStorm: 0.02, pSolarFlare: 0.02 },
+    { winDays: 30, pMeteor: 0.04, pDustStorm: 0.03, pSolarFlare: 0.03 },
+];
