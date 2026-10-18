@@ -70,6 +70,7 @@ const initialState: State = {
     gameOver: false,
     gameOverReason: "",
     gameWon: false,
+    paused: false
 };
 
 /* ==========  HELPERS ========== */
@@ -138,6 +139,12 @@ const selectModule = (type: ModuleType): Reducer => s => ({
     selected: s.selected === type ? null : type,
 });
 
+// pause feature
+const togglePause: Reducer = s => {
+    if (s.gameOver || s.gameWon) return s;
+    return { ...s, paused: !s.paused };
+};
+
 const placeModule = (x: number, y: number): Reducer => s => {
     if (s.gameOver || s.gameWon || !s.selected) return s;
     if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return s;
@@ -170,6 +177,7 @@ const placeModule = (x: number, y: number): Reducer => s => {
 /* ===== SIMULATION TICK ===== */
 const tick: Reducer = s => {
     if (s.gameOver || s.gameWon) return s;
+    if (s.paused) return s; // freeze everything while paused
 
     // Coverage maps for this tick
     const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
@@ -397,6 +405,16 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                         ctx.fillText(cell.module, px + CELL_SIZE / 2, py + CELL_SIZE / 2 + 4);
                     }
                 }
+                    if (s.paused) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#f5d76e";
+                ctx.font = "bold 36px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
+            }
+
             }
         }
 
@@ -430,6 +448,10 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         setHud("hud-radiation", `${Math.round(s.radiation)}%`, s.radiation > 60 ? "#ff5c5c" : "");
         setHud("hud-credits", `$${s.credits}`);
         setHud("hud-day", `Day ${s.day}`);
+        setHud("hud-day",
+            s.paused ? `Day ${s.day} — PAUSED` : `Day ${s.day}`,
+            s.paused ? "#f5d76e" : "",
+        );
 
         // --- Selected module highlight ---
         document.querySelectorAll<HTMLElement>(".module-btn").forEach(btn => {
@@ -476,6 +498,12 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
         map(e => selectModule((e.target as HTMLElement).dataset.module as ModuleType)),
     );
 
+    // Pause toggle (P key)
+    const pause$: Observable<Reducer> = fromEvent<KeyboardEvent>(document, "keydown").pipe(
+        filter(e => e.code === "KeyP"),
+        map(() => togglePause),
+    );
+
     // Restart button
     const restart$: Observable<State> = fromEvent<MouseEvent>(document, "click").pipe(
         filter(e => (e.target as HTMLElement).id === "restartBtn"),
@@ -485,7 +513,7 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
     // Simulation tick — 1 second
     const tick$: Observable<Reducer> = interval(1000).pipe(map(() => tick));
 
-    const events$ = merge(click$, select$, tick$);
+    const events$ = merge(click$, select$, tick$, pause$);
 
     return restart$.pipe(
         startWith(initialState),

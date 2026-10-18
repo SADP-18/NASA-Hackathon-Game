@@ -41,4 +41,5 @@ export interface State {
     gameOver: boolean;
     gameOverReason: string;
     gameWon: boolean;
+    paused: boolean; // Ability to pause game
 }
