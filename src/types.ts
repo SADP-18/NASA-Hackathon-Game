@@ -42,4 +42,15 @@ export interface State {
     gameOverReason: string;
     gameWon: boolean;
     paused: boolean; // Ability to pause game
+    level: number;
+    levelComplete: boolean;
+}
+
+// Level Config: determines the level of difficulty of the game for
+// each different level.
+export interface LevelConfig {
+    winDays: number;
+    pMeteor: number;
+    pDustStorm: number;
+    pSolarFlare: number;
 }
