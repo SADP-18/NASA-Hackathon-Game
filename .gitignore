@@ -1,1 +1,4 @@
 node_modules/
+
+# MacOS (my bad guys)
+.DS_Store

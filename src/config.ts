@@ -81,7 +81,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressReduce: 0,
         radReduce: 0,
         description: "-3 kW, -3 O2, -3 food. +2 manpower. Emits radiation.",
-        icon: "/icons/hab.png",
+        icon: "/icons/Habitat.png",
     },
     HYDRO: {
         type: "HYDRO",
@@ -99,7 +99,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressReduce: 0,
         radReduce: 0,
         description: "-8 kW, +15 O2, +5 food. Supplies O2 within radius 2.",
-        icon: "/icons/hydro.png",
+        icon: "/icons/Greenhouse.png",
     },
     SHIELD: {
         type: "SHIELD",
@@ -117,7 +117,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressReduce: 0,
         radReduce: 3,
         description: "-5 kW. Shields adjacent habitats from radiation.",
-        icon: "/icons/shield.svg",
+        icon: "/icons/Radiation.png",
     },
     MEDICAL: {
         type: "MEDICAL",
