@@ -62,7 +62,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 0,
         radReduce: 0,
-        description: "+12 kW. Requires 1 manpower to operate.",
+        description: "Description: Generates power for the outpost.\nPower Generation: +12 kW\nManpower: 1 operator / technician\nOther Resources: None (requires periodic surface dust-cleaning).",
         icon: "/icons/solar.png",
     },
     HAB: {
@@ -80,7 +80,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 0,
         radReduce: 0,
-        description: "-3 kW, -3 O2, -3 food. +2 manpower. Emits radiation.",
+        description: "Description: Provide living quarters, hygiene facilities, and psychological space for the crew.\nEnergy: 4 kW\nManpower: 0.5 (maintenance/sanitation rotation)\nOther Resources:\nWater: ~30 liters/day (supplied by filtration/recycling units)\nOxygen: ~0.84 kg/day per crew member.",
         icon: "/icons/Habitat.png",
     },
     HYDRO: {
@@ -98,7 +98,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 0,
         radReduce: 0,
-        description: "-8 kW, +15 O2, +5 food. Supplies O2 within radius 2.",
+        description: "Description: Produce food, support biomass recycling, and supply supplementary oxygen via plant photosynthesis.\nEnergy: 8 kW (primarily for artificial grow-lighting and climate control)\nManpower: 2 agronomists / botanists\nOther Resources:\nWater: High consumption (~200–500 liters/day, largely supplied by greywater recycling)\nCarbon Dioxide (CO2CO2): Required for plant growth (sourced from crew respiration)",
         icon: "/icons/Greenhouse.png",
     },
     SHIELD: {
@@ -116,7 +116,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 0,
         radReduce: 3,
-        description: "-5 kW. Shields adjacent habitats from radiation.",
+        description: "Description: Generates an active magnetic or dense physical field to protect nearby modules, electronics, and habitat units from cosmic rays and solar particle events.\nEnergy: 15 kW (heavy draw for shielding arrays or active deflection coils)\nManpower: 0.5 (automated system requiring remote monitoring)\nOther Resources: Coolant fluids (such as ammonia or water loops) to manage thermal buildup from high-energy field generation.",
         icon: "/icons/Radiation.png",
     },
     MEDICAL: {
@@ -134,7 +134,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 4,
         radReduce: 0,
-        description: "-5 kW. Reduces crew stress.",
+        description: "Description: Provides diagnostic equipment, trauma care, surgical capabilities, and pharmaceutical storage to safeguard crew health.\nEnergy: 5 kW (higher spikes during diagnostic imaging or surgical procedures)\nManpower: 1 Chief Medical Officer / Medic\nOther Resources:\nWater: ~50 liters/day (sterilization, equipment cooling, patient care)\nOxygen: Medical-grade oxygen tanks for trauma and surgical support\nConsumables: Pharmaceuticals, sterile bandages, and diagnostic disposables.",
         icon: "/icons/medical.svg",
     },
 };
