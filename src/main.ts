@@ -82,7 +82,8 @@ const formatGameTime = (timeSec: number): string => {
     const hours = Math.floor((timeSec / TICKS_PER_DAY) * 24);
     return `${String(hours).padStart(2, "0")}:00`;
 }
-//     COVERAGE
+// COVERAGE MAPS — returns a boolean grid of which cells are within a coverage radius
+// of a given module type (e.g. SOLAR or HYDRO)
 const computeCoverage = (
     grid: Cell[][],
     source: ModuleType,
@@ -241,7 +242,8 @@ const tick: Reducer = s => {
     const netManpower = manpowerGen - manpowerDrain;
     let newManpower = Math.max(0, s.manpower + netManpower);
 
-    // Oxygen — uncovered habitats drain extra
+    // OXYGEN — Uncovered Habitation Pod drain extra oxygen if not 
+    // within 2 tiles of a Hydroponics module.
     let uncoveredHabDrain = 0;
     for (let x = 0; x < GRID_SIZE; x++) {
         for (let y = 0; y < GRID_SIZE; y++) {
@@ -565,8 +567,13 @@ if (typeof window !== "undefined") {
             const label = document.createElement("span");
             label.className = "module-label";
             label.innerHTML = `
-                <span class="name">${cfg.name}</span>
-                <span class="cost">$${cfg.cost}</span>`;
+                <span class="title-row">
+                    <span class="name">${cfg.name}</span>
+                    <span class="cost">$${cfg.cost}</span>
+                </span>
+                <span class="desc"></span>`;
+            // textContent keeps the "\n" line breaks safe and avoids HTML injection
+            label.querySelector(".desc")!.textContent = cfg.description;
             btn.appendChild(label);
 
             menu.appendChild(btn);
