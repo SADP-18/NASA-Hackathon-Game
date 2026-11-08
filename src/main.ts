@@ -131,7 +131,10 @@ const hasAdjacentShield = (grid: Cell[][], x: number, y: number): boolean => {
     });
 };
 
-
+const isGridFull = (grid: Cell[][]): boolean => 
+    grid.every(col => 
+        col.every(cell => cell.module !== null)
+    );
 
 /* ===== PURE REDUCERS ===== */
 type Reducer = (s: State) => State;
@@ -168,11 +171,15 @@ const placeModule = (x: number, y: number): Reducer => s => {
         ),
     );
 
+const full =    isGridFull(newGrid);
+
     return {
         ...s,
         credits: s.credits - cfg.cost,
         grid: newGrid,
-        logs: [`Built ${cfg.name} at (${x},${y}).`, ...s.logs],
+        levelComplete: full,
+        logs: [...(full ? [`level ${s.level} complete!`]: [] ),
+            `Built ${cfg.name} at (${x},${y}).`, ...s.logs],
     };
 };
 
@@ -320,16 +327,6 @@ const tick: Reducer = s => {
     }
 
     let levelComplete = false;
-
-    if (!gameOver && newDay > lvl.winDays) {
-        if (s.level >= LEVELS.length) {
-            gameWon = true;
-            reason = "All levels cleared! Outpost is sustainable.";
-        } else {
-            levelComplete = true;
-            reason = `Level ${s.level} complete! Survived ${lvl.winDays} days.`;
-        }
-    }
 
     const dayLog = advancedDay
         ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
