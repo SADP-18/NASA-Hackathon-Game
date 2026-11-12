@@ -383,13 +383,14 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                 const px = x * CELL_SIZE;
                 const py = y * CELL_SIZE;
 
-                // Coverage tint
+                // Coverage tint 
                 if (powered[x][y]) {
-                    ctx.fillStyle = "rgba(78, 204, 163, 0.06)";
+                    // Cyan tint for power
+                    ctx.fillStyle = "rgba(0, 240, 255, 0.15)";
                     ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
                 }
                 if (oxygenated[x][y]) {
-                    ctx.fillStyle = "rgba(120, 180, 255, 0.06)";
+                    ctx.fillStyle = "rgba(78, 204, 163, 0.15)";
                     ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
                 }
 
@@ -411,14 +412,16 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                         ctx.fillText(cell.module, px + CELL_SIZE / 2, py + CELL_SIZE / 2 + 4);
                     }
                 }
+
+                // Pause overlay
                     if (s.paused) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                ctx.fillStyle = "rgba(5, 8, 16, 0.7)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                ctx.fillStyle = "#f5d76e";
-                ctx.font = "bold 36px monospace";
+                ctx.fillStyle = "#00f0ff";
+                ctx.font = "bold 36px 'Orbitron', monospace";
                 ctx.textAlign = "center";
-                ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
+                ctx.fillText("SYSTEM PAUSED", canvas.width / 2, canvas.height / 2);
             }
 
             }
@@ -481,7 +484,7 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
             if (s.gameOver || s.gameWon || s.levelComplete) {
                 overlay.classList.remove("hidden");
                 title.innerText = s.gameWon ? "OUTPOST SUSTAINABLE" : s.levelComplete ? "LEVEL COMPLETE" : "OUTPOST LOST";
-                title.style.color = s.gameOver ? "#ff5c5c" : "#4ecca3";
+                title.style.color = s.gameOver ? "#ff3333" : "#00f0ff";
                 msg.innerText = s.gameOverReason;
                 nextBtn.classList.toggle("hidden", !s.levelComplete);
             } else {
