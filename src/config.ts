@@ -107,7 +107,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
     SHIELD: {
         type: "SHIELD",
         name: "Radiation Shield",
-        cost: 25,
+        cost: 15,
         powerGen: 0,
         powerDrain: 4,
         manpowerGen: 0,
@@ -126,7 +126,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
     MEDICAL: {
         type: "MEDICAL",
         name: "Medical Bay",
-        cost: 30,
+        cost: 25,
         powerGen: 0,
         powerDrain: 3,
         manpowerGen: 0,

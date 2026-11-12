@@ -209,9 +209,10 @@ body {
 /* ===== Canvas ===== */
 #gridCanvas {
     background-color: rgba(0, 0, 0, 0.3);
-    background-image:
-        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-image: url('/icons/Mars Crater Desert Landscape.png');
+    background-size: cover;      
+    background-position: center; 
+    
     border: 2px solid var(--border);
     border-radius: 4px;
     cursor: crosshair;
