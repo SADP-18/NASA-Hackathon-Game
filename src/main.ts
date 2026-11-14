@@ -131,8 +131,8 @@ const hasAdjacentShield = (grid: Cell[][], x: number, y: number): boolean => {
     });
 };
 
-const isGridFull = (grid: Cell[][]): boolean => 
-    grid.every(col => 
+const isGridFull = (grid: Cell[][]): boolean =>
+    grid.every(col =>
         col.every(cell => cell.module !== null)
     );
 
@@ -171,15 +171,15 @@ const placeModule = (x: number, y: number): Reducer => s => {
         ),
     );
 
-const full =    isGridFull(newGrid);
+    const full = isGridFull(newGrid);
 
     return {
         ...s,
         credits: s.credits - cfg.cost,
         grid: newGrid,
         levelComplete: full,
-        logs: [...(full ? [`level ${s.level} complete!`]: [] ),
-            `Built ${cfg.name} at (${x},${y}).`, ...s.logs],
+        logs: [...(full ? [`level ${s.level} complete!`] : []),
+        `Built ${cfg.name} at (${x},${y}).`, ...s.logs],
     };
 };
 
@@ -328,6 +328,32 @@ const tick: Reducer = s => {
 
     let levelComplete = false;
 
+    //check percentage of the filled tiles in the grid
+    const targetFillRates = [0.5, 0.75, 0.9];
+    const requiredFillRate = targetFillRates[s.level - 1] || 0.9;
+
+    let filledCount = 0;
+    const totalCells = GRID_SIZE * GRID_SIZE;
+    for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+            if (s.grid[x][y].module !== null) {
+                filledCount++;
+            }
+        }
+    }
+
+    const currentFillRate = filledCount / totalCells;
+
+    if (!gameOver && currentFillRate >= requiredFillRate) {
+        if (s.level >= LEVELS.length) {
+            gameWon = true;
+            reason = "All levels completed. Outpost sustainable!";
+        } else {
+            levelComplete = true;
+            reason = `Level ${s.level} complete! Proceed to next level.`;
+        }
+    }
+
     const dayLog = advancedDay
         ? [`--- Day ${newDay} --- (+${CREDITS_PER_DAY} credits)`, ...s.logs]
         : s.logs;
@@ -415,14 +441,14 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
 
                 // Pause overlay
                 if (s.paused) {
-                ctx.fillStyle = "rgba(5, 8, 16, 0.7)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "rgba(5, 8, 16, 0.7)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                ctx.fillStyle = "#00f0ff";
-                ctx.font = "bold 36px 'Orbitron', monospace";
-                ctx.textAlign = "center";
-                ctx.fillText("SYSTEM PAUSED", canvas.width / 2, canvas.height / 2);
-            }
+                    ctx.fillStyle = "#00f0ff";
+                    ctx.font = "bold 36px 'Orbitron', monospace";
+                    ctx.textAlign = "center";
+                    ctx.fillText("SYSTEM PAUSED", canvas.width / 2, canvas.height / 2);
+                }
             }
         }
 
@@ -490,7 +516,7 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                 overlay.classList.add("hidden");
             }
         }
-        
+
         // --- Pause button ---
         const pauseBtn = document.getElementById("pauseBtn") as HTMLButtonElement | null;
         const pauseLabel = document.getElementById("pauseBtnLabel");
