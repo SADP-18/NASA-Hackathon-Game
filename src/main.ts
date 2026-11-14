@@ -319,13 +319,29 @@ const tick: Reducer = s => {
 
     let levelComplete = false;
 
-    if (!gameOver && newDay > lvl.winDays) {
+    //check percentage of the filled tiles in the grid
+    const targetFillRates = [0.5, 0.75, 0.9];
+    const requiredFillRate = targetFillRates[s.level - 1] || 0.9;
+
+    let filledCount = 0;
+    const totalCells = GRID_SIZE * GRID_SIZE;
+    for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+            if (s.grid[x][y].module !== null) {
+                filledCount++;
+            }
+        }
+    }
+
+    const currentFillRate = filledCount / totalCells;
+
+    if (!gameOver && currentFillRate >= requiredFillRate) {
         if (s.level >= LEVELS.length) {
             gameWon = true;
-            reason = "All levels cleared! Outpost is sustainable.";
+            reason = "All levels completed. Outpost sustainable!";
         } else {
             levelComplete = true;
-            reason = `Level ${s.level} complete! Survived ${lvl.winDays} days.`;
+            reason = `Level ${s.level} complete! Proceed to next level.`;
         }
     }
 
@@ -412,15 +428,15 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                         ctx.fillText(cell.module, px + CELL_SIZE / 2, py + CELL_SIZE / 2 + 4);
                     }
                 }
-                    if (s.paused) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                if (s.paused) {
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                ctx.fillStyle = "#f5d76e";
-                ctx.font = "bold 36px monospace";
-                ctx.textAlign = "center";
-                ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
-            }
+                    ctx.fillStyle = "#f5d76e";
+                    ctx.font = "bold 36px monospace";
+                    ctx.textAlign = "center";
+                    ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
+                }
 
             }
         }
