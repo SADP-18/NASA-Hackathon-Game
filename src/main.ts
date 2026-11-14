@@ -414,7 +414,7 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                 }
 
                 // Pause overlay
-                    if (s.paused) {
+                if (s.paused) {
                 ctx.fillStyle = "rgba(5, 8, 16, 0.7)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -423,7 +423,6 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                 ctx.textAlign = "center";
                 ctx.fillText("SYSTEM PAUSED", canvas.width / 2, canvas.height / 2);
             }
-
             }
         }
 
@@ -491,6 +490,15 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                 overlay.classList.add("hidden");
             }
         }
+        
+        // --- Pause button ---
+        const pauseBtn = document.getElementById("pauseBtn") as HTMLButtonElement | null;
+        const pauseLabel = document.getElementById("pauseBtnLabel");
+        if (pauseBtn && pauseLabel) {
+            pauseLabel.innerText = s.paused ? "RESUME" : "PAUSE";
+            pauseBtn.classList.toggle("paused", s.paused);
+            pauseBtn.disabled = s.gameOver || s.gameWon || s.levelComplete;
+        }
     };
 };
 
@@ -513,10 +521,23 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
     );
 
     // Pause toggle (P key)
-    const pause$: Observable<Reducer> = fromEvent<KeyboardEvent>(document, "keydown").pipe(
+    // const pause$: Observable<Reducer> = fromEvent<KeyboardEvent>(document, "keydown").pipe(
+    //     filter(e => e.code === "KeyP"),
+    //     map(() => togglePause),
+    // );
+
+    // Pause toggle (P key or button)
+    const pauseKey$: Observable<Reducer> = fromEvent<KeyboardEvent>(document, "keydown").pipe(
         filter(e => e.code === "KeyP"),
         map(() => togglePause),
     );
+
+    const pauseBtn$: Observable<Reducer> = fromEvent<MouseEvent>(document, "click").pipe(
+        filter(e => (e.target as HTMLElement).closest("#pauseBtn") !== null),
+        map(() => togglePause),
+    );
+
+    const pause$ = merge(pauseKey$, pauseBtn$);
 
     // Restart button
     const restart$: Observable<State> = fromEvent<MouseEvent>(document, "click").pipe(
