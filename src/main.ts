@@ -177,9 +177,7 @@ const placeModule = (x: number, y: number): Reducer => s => {
         ...s,
         credits: s.credits - cfg.cost,
         grid: newGrid,
-        levelComplete: full,
-        logs: [...(full ? [`level ${s.level} complete!`] : []),
-        `Built ${cfg.name} at (${x},${y}).`, ...s.logs],
+        logs: [`Built ${cfg.name} at (${x},${y}).`, ...s.logs],
     };
 };
 
@@ -191,7 +189,11 @@ const tick: Reducer = s => {
     const lvl = LEVELS[s.level - 1];
 
     // Coverage maps for this tick
-    const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
+    const solarCovered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
+    const baseCovered = computeCoverage(s.grid, "BASE", COVERAGE_POWER);
+    const powered = solarCovered.map((row, x) =>
+        row.map((val, y) => val || baseCovered[x][y])
+    );
     const oxygenated = computeCoverage(s.grid, "HYDRO", COVERAGE_O2);
 
     // Accumulate output from active modules
@@ -217,6 +219,15 @@ const tick: Reducer = s => {
             const cfg = MODULES[cell.module];
             const selfPowered = cell.module === "SOLAR" || cell.module === "BASE";
             const isPowered = selfPowered || powered[x][y];
+
+            if (cell.module === "HAB") {
+                habCount++;
+                if (hasAdjacentShield(s.grid, x, y)) {
+                    shieldedHabs++;
+                } else if (!isPowered) {
+                    stressGen += 3; // Unpowered Habs cause stress
+                }
+            }
 
             if (!isPowered) continue;
 
@@ -291,8 +302,8 @@ const tick: Reducer = s => {
 
     // Radiation — unshielded habs contribute
     const radFromHabs = (habCount - shieldedHabs) * 1.5;
-    const radFromHydro = (habCount - shieldedHabs) * 0.5;
-    const radFromMedical = (habCount - shieldedHabs) * 0.5;
+    const radFromHydro = (hydroCount - shieldedHydro) * 0.5; 
+    const radFromMedical = (medicalCount - shieldedMedical) * 0.5;
     const radFromBase = (1 - shieldedBase) * 1.5; // built in 1 cause there's only 1 base
     
     const radDelta = radFromHabs + radFromHydro + radFromMedical + radFromBase - radReduce;
@@ -433,7 +444,11 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Coverage overlay (subtle background tint)
-        const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
+        const solarCovered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
+        const baseCovered = computeCoverage(s.grid, "BASE", COVERAGE_POWER);
+        const powered = solarCovered.map((row, x) =>
+        row.map((val, y) => val || baseCovered[x][y])
+    );
         const oxygenated = computeCoverage(s.grid, "HYDRO", COVERAGE_O2);
         const shielded = computeCoverage(s.grid, "SHIELD", 1);
 
@@ -477,7 +492,10 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                     }
                 }
 
-                // Pause overlay
+            }
+        }
+
+        // Pause overlay
                 if (s.paused) {
                     ctx.fillStyle = "rgba(5, 8, 16, 0.7)";
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -487,8 +505,6 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                     ctx.textAlign = "center";
                     ctx.fillText("SYSTEM PAUSED", canvas.width / 2, canvas.height / 2);
                 }
-            }
-        }
 
         // --- HUD ---
         const setHud = (
