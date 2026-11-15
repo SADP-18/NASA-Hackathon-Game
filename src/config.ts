@@ -80,7 +80,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 0,
         radReduce: 0,
-        description: "Provides living quarters and psychological space for the crew.\nPower Usage: -3 kW\nManpower Provided: +2 crew\nOxygen Usage: -3 (-6 outside Hydroponics range)\nFood Usage: -3\nRadiation Generation: +1.5 (unless next to a Radiation Shield)",
+        description: "Provides living quarters and psychological space for the crew.\nPower Usage: -3 kW\nManpower Provided: +5 crew\nOxygen Usage: -2 (-4 outside Hydroponics range)\nFood Usage: -3\nRadiation Generation: +1.5 (unless next to a Radiation Shield)",
         icon: "/icons/Habitat.png",
     },
     HYDRO: {
@@ -98,7 +98,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 2,
         stressReduce: 0,
         radReduce: 0,
-        description: "Produces food and supplementary oxygen through plant photosynthesis.\nPower Usage: -6 kW\nManpower Needed: +1 agronomist\nOxygen Generation: +15\nFood Generation: +6\nStress Generation: +3\nCoverage: Supplies oxygen to habitation pods within 2 tiles",
+        description: "Produces food and supplementary oxygen through plant photosynthesis.\nPower Usage: -6 kW\nManpower Needed: +1 agronomist\nOxygen Generation: +10\nFood Generation: +6\nStress Generation: +2\nCoverage: Supplies oxygen to habitation pods within 2 tiles",
         icon: "/icons/Hydroponics.png",
     },
     SHIELD: {
@@ -116,7 +116,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 1,
         stressReduce: 0,
         radReduce: 3,
-        description: "Protects adjacent habitation pods from cosmic rays and solar particle events.\nPower Usage: -4 kW\nManpower Needed: +1 technicians\nRadiation Reduction: -3\nStress Generation: +5",
+        description: "Protects adjacent habitation pods from cosmic rays and solar particle events.\nPower Usage: -4 kW\nManpower Needed: +1 technicians\nRadiation Reduction: -3\nStress Generation: +1",
         icon: "/icons/Radiation.png",
     },
     MEDICAL: {
