@@ -16,7 +16,7 @@ export const START_OXYGEN = 100;
 export const START_FOOD = 50;
 export const START_STRESS = 0;
 export const START_RADIATION = 0;
-export const START_CREDITS = 500000000;
+export const START_CREDITS = 50;
 
 export const CREDITS_PER_DAY = 5;
 export const TICKS_PER_DAY = 24;      // 24 seconds per day

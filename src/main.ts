@@ -305,23 +305,33 @@ const tick: Reducer = s => {
     const newCredits = advancedDay ? s.credits + CREDITS_PER_DAY : s.credits;
 
     // Random events
-    const events: string[] = [];
+    const events: { text: string; source?: string }[] = [];
 
     if (Math.random() < lvl.pMeteor) {
         const dmg = 5 + Math.floor(Math.random() * 10);
         newPower = Math.max(0, newPower - dmg);
-        events.push(`METEOR STRIKE: -${dmg} power`);
+        events.push({text: `METEOR STRIKE: -${dmg} power`});
     }
 
     let newDustStormTimer = Math.max(0, s.dustStormTimer - 1);
     if (Math.random() < lvl.pDustStorm && newDustStormTimer === 0) {
         newDustStormTimer = DUST_STORM_DURATION;
-        events.push(`DUST STORM: Solar output halved for ${DUST_STORM_DURATION}s`);
+        events.push({text: `DUST STORM: Solar output halved for ${DUST_STORM_DURATION}s`});
     }
 
     if (Math.random() < lvl.pSolarFlare) {
-        newOxygen = Math.max(0, newOxygen - 8);
-        events.push("SOLAR FLARE: -8% oxygen");
+        // Based on DONKI real historical solar flare data
+        const donkiEvents = [
+        { msg: "MASSIVE SUN STORM! The solar array is struggling. -20% Oxygen.", o2: -20, pw: -10, source: "NASA DONKI (X1.6-class Solar Flare, Aug 5, 2023)" }, 
+        { msg: "SOLAR FLARE DETECTED! Crew is sheltering. -10% Power.", o2: 0, pw: -10, source: "NASA DONKI (M1.78 Solar Flare: Nov 11, 2026)" }, 
+        { msg: "RADIATION SPIKE! Cosmic rays are hitting the outpost. -8% Oxygen.", o2: -8, pw: 0, source: "NASA DONKI (Solar Particle Event, Jan 18-20, 2026)" } 
+        ]
+        const event = donkiEvents[Math.floor(Math.random() * donkiEvents.length)];
+        newOxygen = Math.max(0, newOxygen + event.o2);
+        newPower = Math.max(0, newPower + event.pw);
+        events.push({text: event.msg,
+            source: event.source
+    });
     }
 
     // Losing conditions
@@ -525,7 +535,13 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         // --- Logs ---
         const logEl = document.getElementById("log");
         if (logEl) {
-            logEl.innerHTML = s.logs.slice(0, 12).map(l => `<div>${l}</div>`).join("");
+            logEl.innerHTML = s.logs.slice(0, 12).map(l => {
+
+            if (typeof l === "object" && l.source) { return `<div title="${l.source}" style="cursor: help; text-decoration: underline dotted rgba(255,255,255,0.4);">${l.text}</div>`;} if (typeof l === "object") {
+            return `<div>${l.text}</div>`;
+        } 
+    return `<div>${l}</div>`;
+    }).join("");
         }
 
         // --- Game over / win overlay ---

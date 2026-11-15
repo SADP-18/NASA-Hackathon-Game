@@ -23,6 +23,7 @@ export interface Cell {
     module: ModuleType | null;
 }
 
+export type LogEntry = string | {text: string; source?: string};
 export interface State {
     credits: number;
     manpower: number;
@@ -37,7 +38,7 @@ export interface State {
     grid: Cell[][];
     blackoutTimer: number; // seconds power has been 0
     dustStormTimer: number;
-    logs: string[];
+    logs: LogEntry[];
     gameOver: boolean;
     gameOverReason: string;
     gameWon: boolean;
