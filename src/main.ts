@@ -329,7 +329,7 @@ const tick: Reducer = s => {
     let levelComplete = false;
 
     //check percentage of the filled tiles in the grid
-    const targetFillRates = [0.5, 0.75, 0.9];
+    const targetFillRates = [0.2, 0.4, 0.6];
     const requiredFillRate = targetFillRates[s.level - 1] || 0.9;
 
     let filledCount = 0;
@@ -545,12 +545,6 @@ const state$ = (canvas: HTMLCanvasElement): Observable<State> => {
         filter((btn): btn is HTMLElement => btn !== null),
         map(btn => selectModule(btn.dataset.module as ModuleType)),
     );
-
-    // Pause toggle (P key)
-    // const pause$: Observable<Reducer> = fromEvent<KeyboardEvent>(document, "keydown").pipe(
-    //     filter(e => e.code === "KeyP"),
-    //     map(() => togglePause),
-    // );
 
     // Pause toggle (P key or button)
     const pauseKey$: Observable<Reducer> = fromEvent<KeyboardEvent>(document, "keydown").pipe(
