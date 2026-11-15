@@ -16,7 +16,7 @@ export const START_OXYGEN = 100;
 export const START_FOOD = 50;
 export const START_STRESS = 0;
 export const START_RADIATION = 0;
-export const START_CREDITS = 50;
+export const START_CREDITS = 500000000;
 
 export const CREDITS_PER_DAY = 5;
 export const TICKS_PER_DAY = 24;      // 24 seconds per day
@@ -41,8 +41,8 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Drain: 3,
         foodGen: 0,
         foodDrain: 2,
-        stressGen: 0,
-        stressReduce: 1,
+        stressGen: 1,
+        stressReduce: 0,
         radReduce: 1,
         description: "Starting base. Always active.",
         icon: "/icons/base.svg",
@@ -62,8 +62,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 1,
         stressReduce: 0,
         radReduce: 0,
-        // description: "Description: Generates power for the outpost.\nPower Generation: +12 kW\nManpower: 1 operator / technician\nOther Resources: None (requires periodic surface dust-cleaning).",
-        description: "Generates power for the outpost.\nPower Generation: +12 kW\nManpower Needed: +1 technician\nStress Generation: +1\nCoverage: Powers modules within 3 tiles",
+        description: "Generates power for the outpost.\nPower Generation: +16 kW\nManpower Needed: +1 technician\nStress Generation: +1\nCoverage: Powers modules within the designated area\nNote: be sure to place modules within the solar panel tiles or they won't work!",
         icon: "/icons/Solar.png",
     },
     HAB: {
@@ -81,7 +80,6 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 0,
         radReduce: 0,
-        // description: "Description: Provide living quarters, hygiene facilities, and psychological space for the crew.\nEnergy: 4 kW\nManpower: 0.5 (maintenance/sanitation rotation)\nOther Resources:\nWater: ~30 liters/day (supplied by filtration/recycling units)\nOxygen: ~0.84 kg/day per crew member.",
         description: "Provides living quarters and psychological space for the crew.\nPower Usage: -3 kW\nManpower Provided: +2 crew\nOxygen Usage: -3 (-6 outside Hydroponics range)\nFood Usage: -3\nRadiation Generation: +1.5 (unless next to a Radiation Shield)",
         icon: "/icons/Habitat.png",
     },
@@ -97,11 +95,10 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Drain: 0,
         foodGen: 6,
         foodDrain: 0,
-        stressGen: 1,
+        stressGen: 2,
         stressReduce: 0,
         radReduce: 0,
-        // description: "Description: Produce food, support biomass recycling, and supply supplementary oxygen via plant photosynthesis.\nEnergy: 8 kW (primarily for artificial grow-lighting and climate control)\nManpower: 2 agronomists / botanists\nOther Resources:\nWater: High consumption (~200–500 liters/day, largely supplied by greywater recycling)\nCarbon Dioxide (CO2CO2): Required for plant growth (sourced from crew respiration)",
-        description: "Produces food and supplementary oxygen through plant photosynthesis.\nPower Usage: -8 kW\nManpower Needed: +1 agronomist\nOxygen Generation: +15\nFood Generation: +5\nStress Generation: +1\nCoverage: Supplies oxygen to habitation pods within 2 tiles",
+        description: "Produces food and supplementary oxygen through plant photosynthesis.\nPower Usage: -6 kW\nManpower Needed: +1 agronomist\nOxygen Generation: +15\nFood Generation: +6\nStress Generation: +3\nCoverage: Supplies oxygen to habitation pods within 2 tiles",
         icon: "/icons/Hydroponics.png",
     },
     SHIELD: {
@@ -116,11 +113,10 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         o2Drain: 0,
         foodGen: 0,
         foodDrain: 0,
-        stressGen: 0,
+        stressGen: 1,
         stressReduce: 0,
         radReduce: 3,
-        // description: "Description: Generates an active magnetic or dense physical field to protect nearby modules, electronics, and habitat units from cosmic rays and solar particle events.\nEnergy: 15 kW (heavy draw for shielding arrays or active deflection coils)\nManpower: 0.5 (automated system requiring remote monitoring)\nOther Resources: Coolant fluids (such as ammonia or water loops) to manage thermal buildup from high-energy field generation.",
-        description: "Protects adjacent habitation pods from cosmic rays and solar particle events.\nPower Usage: -5 kW\nManpower Needed: +2 technicians\nRadiation Reduction: -3\nStress Generation: +2",
+        description: "Protects adjacent habitation pods from cosmic rays and solar particle events.\nPower Usage: -4 kW\nManpower Needed: +1 technicians\nRadiation Reduction: -3\nStress Generation: +5",
         icon: "/icons/Radiation.png",
     },
     MEDICAL: {
@@ -138,8 +134,7 @@ export const MODULES: Record<ModuleType, ModuleConfig> = {
         stressGen: 0,
         stressReduce: 4,
         radReduce: 0,
-        // description: "Description: Provides diagnostic equipment, trauma care, surgical capabilities, and pharmaceutical storage to safeguard crew health.\nEnergy: 5 kW (higher spikes during diagnostic imaging or surgical procedures)\nManpower: 1 Chief Medical Officer / Medic\nOther Resources:\nWater: ~50 liters/day (sterilization, equipment cooling, patient care)\nOxygen: Medical-grade oxygen tanks for trauma and surgical support\nConsumables: Pharmaceuticals, sterile bandages, and diagnostic disposables.",
-        description: "Provides diagnostics, trauma care, and surgical capabilities to safeguard crew health.\nPower Usage: -5 kW\nManpower Needed: +2 medics\nStress Reduction: -4",
+        description: "Provides diagnostics, trauma care, and surgical capabilities to safeguard crew health.\nPower Usage: -3 kW\nManpower Needed: +1 medics\nStress Reduction: -4",
         icon: "/icons/Medical.png",
     },
 };

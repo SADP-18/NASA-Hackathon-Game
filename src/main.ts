@@ -203,6 +203,11 @@ const tick: Reducer = s => {
     let radReduce = 0;
     let habCount = 0;
     let shieldedHabs = 0;
+    let hydroCount = 0;
+    let shieldedHydro = 0;
+    let medicalCount = 0;
+    let shieldedMedical = 0;
+    let shieldedBase = 0;
 
     for (let x = 0; x < GRID_SIZE; x++) {
         for (let y = 0; y < GRID_SIZE; y++) {
@@ -230,6 +235,17 @@ const tick: Reducer = s => {
             if (cell.module === "HAB") {
                 habCount++;
                 if (hasAdjacentShield(s.grid, x, y)) shieldedHabs++;
+            }
+            if (cell.module === "HYDRO") {
+                hydroCount++;
+                if (hasAdjacentShield(s.grid, x, y)) shieldedHydro++;
+            }
+            if (cell.module === "MEDICAL") {
+                medicalCount++;
+                if (hasAdjacentShield(s.grid, x, y)) shieldedMedical++;
+            }
+            if (cell.module === "BASE") {
+                if (hasAdjacentShield(s.grid, x, y)) shieldedBase++;
             }
         }
     }
@@ -275,7 +291,11 @@ const tick: Reducer = s => {
 
     // Radiation — unshielded habs contribute
     const radFromHabs = (habCount - shieldedHabs) * 1.5;
-    const radDelta = radFromHabs - radReduce;
+    const radFromHydro = (habCount - shieldedHabs) * 0.5;
+    const radFromMedical = (habCount - shieldedHabs) * 0.5;
+    const radFromBase = (1 - shieldedBase) * 1.5; // built in 1 cause there's only 1 base
+    
+    const radDelta = radFromHabs + radFromHydro + radFromMedical + radFromBase - radReduce;
     let newRadiation = Math.max(0, Math.min(MAX_RADIATION, s.radiation + radDelta));
 
     // Time / Day advance
@@ -324,6 +344,9 @@ const tick: Reducer = s => {
     } else if (newRadiation >= MAX_RADIATION) {
         gameOver = true;
         reason = "Radiation critical. Crew poisoned.";
+    } else if (newFood <= 0) {
+        gameOver = true;
+        reason = "Ran out of food. Crew died of hunger.";
     }
 
     let levelComplete = false;
@@ -402,6 +425,7 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
         // Coverage overlay (subtle background tint)
         const powered = computeCoverage(s.grid, "SOLAR", COVERAGE_POWER);
         const oxygenated = computeCoverage(s.grid, "HYDRO", COVERAGE_O2);
+        const shielded = computeCoverage(s.grid, "SHIELD", 1);
 
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
@@ -417,6 +441,10 @@ const render = (canvas: HTMLCanvasElement): ((s: State) => void) => {
                 }
                 if (oxygenated[x][y]) {
                     ctx.fillStyle = "rgba(78, 204, 163, 0.15)";
+                    ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+                }
+                if (shielded[x][y]) {
+                    ctx.fillStyle = "rgba(180, 100, 255, 0.25)";
                     ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
                 }
 
